@@ -1,21 +1,39 @@
-type Level = "debug" | "info" | "warn" | "error";
+export class Logger {
+  static info(message: string, ...args: unknown[]) {
+    console.log(`ℹ️  ${new Date().toISOString()} - ${message}`, ...args);
+  }
 
-function format(level: Level, scope: string, message: string, meta?: unknown): string {
-  const ts = new Date().toISOString();
-  const extra = meta !== undefined ? ` ${JSON.stringify(meta)}` : "";
-  return `[${ts}] [${level.toUpperCase()}] [${scope}] ${message}${extra}`;
+  static error(message: string, ...args: unknown[]) {
+    console.error(`❌ ${new Date().toISOString()} - ${message}`, ...args);
+  }
+
+  static warn(message: string, ...args: unknown[]) {
+    console.warn(`⚠️  ${new Date().toISOString()} - ${message}`, ...args);
+  }
+
+  static success(message: string, ...args: unknown[]) {
+    console.log(`✅ ${new Date().toISOString()} - ${message}`, ...args);
+  }
+
+  static debug(message: string, ...args: unknown[]) {
+    if (process.env.NODE_ENV === "development") {
+      console.log(`🐛 ${new Date().toISOString()} - ${message}`, ...args);
+    }
+  }
 }
 
+/** Scoped logger for modules (e.g. `createLogger("game-handler")`). */
 export function createLogger(scope: string) {
+  const prefix = `[${scope}]`;
   return {
-    debug: (message: string, meta?: unknown) =>
-      console.debug(format("debug", scope, message, meta)),
-    info: (message: string, meta?: unknown) =>
-      console.info(format("info", scope, message, meta)),
-    warn: (message: string, meta?: unknown) =>
-      console.warn(format("warn", scope, message, meta)),
-    error: (message: string, meta?: unknown) =>
-      console.error(format("error", scope, message, meta)),
+    debug: (message: string, ...args: unknown[]) =>
+      Logger.debug(`${prefix} ${message}`, ...args),
+    info: (message: string, ...args: unknown[]) =>
+      Logger.info(`${prefix} ${message}`, ...args),
+    warn: (message: string, ...args: unknown[]) =>
+      Logger.warn(`${prefix} ${message}`, ...args),
+    error: (message: string, ...args: unknown[]) =>
+      Logger.error(`${prefix} ${message}`, ...args),
   };
 }
 

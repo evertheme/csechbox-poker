@@ -1,14 +1,30 @@
-function format(level, scope, message, meta) {
-    const ts = new Date().toISOString();
-    const extra = meta !== undefined ? ` ${JSON.stringify(meta)}` : "";
-    return `[${ts}] [${level.toUpperCase()}] [${scope}] ${message}${extra}`;
+export class Logger {
+    static info(message, ...args) {
+        console.log(`ℹ️  ${new Date().toISOString()} - ${message}`, ...args);
+    }
+    static error(message, ...args) {
+        console.error(`❌ ${new Date().toISOString()} - ${message}`, ...args);
+    }
+    static warn(message, ...args) {
+        console.warn(`⚠️  ${new Date().toISOString()} - ${message}`, ...args);
+    }
+    static success(message, ...args) {
+        console.log(`✅ ${new Date().toISOString()} - ${message}`, ...args);
+    }
+    static debug(message, ...args) {
+        if (process.env.NODE_ENV === "development") {
+            console.log(`🐛 ${new Date().toISOString()} - ${message}`, ...args);
+        }
+    }
 }
+/** Scoped logger for modules (e.g. `createLogger("game-handler")`). */
 export function createLogger(scope) {
+    const prefix = `[${scope}]`;
     return {
-        debug: (message, meta) => console.debug(format("debug", scope, message, meta)),
-        info: (message, meta) => console.info(format("info", scope, message, meta)),
-        warn: (message, meta) => console.warn(format("warn", scope, message, meta)),
-        error: (message, meta) => console.error(format("error", scope, message, meta)),
+        debug: (message, ...args) => Logger.debug(`${prefix} ${message}`, ...args),
+        info: (message, ...args) => Logger.info(`${prefix} ${message}`, ...args),
+        warn: (message, ...args) => Logger.warn(`${prefix} ${message}`, ...args),
+        error: (message, ...args) => Logger.error(`${prefix} ${message}`, ...args),
     };
 }
 export const log = createLogger("server");
