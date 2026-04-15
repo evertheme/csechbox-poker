@@ -6,22 +6,49 @@ import type { PlayerAction } from "@/types/game";
 
 export function useGame(gameId: string) {
   const { socket } = useSocket();
-  const { gameState, players, myPlayerId, isConnected, lastError } = useGameStore();
-
-  const myPlayer = players.find((p) => p.id === myPlayerId) ?? null;
-  const isMyTurn = gameState?.currentPlayerId === myPlayerId;
+  const {
+    gameState,
+    players,
+    isConnected,
+    lastError,
+    selectedAction,
+    raiseAmount,
+    setSelectedAction,
+    setRaiseAmount,
+    getMyPlayer,
+    getIsMyTurn,
+  } = useGameStore();
 
   function sendAction(action: PlayerAction, amount?: number) {
-    socket?.emit("game:action", action, amount);
+    socket?.emit("game:action", {
+      type: action,
+      playerId: getMyPlayer()?.id ?? "",
+      amount,
+      timestamp: new Date(),
+    });
   }
 
   function joinRoom() {
-    socket?.emit("room:join", gameId);
+    socket?.emit("room:join", gameId, () => {});
   }
 
   function leaveRoom() {
     socket?.emit("room:leave", gameId);
   }
 
-  return { gameState, players, myPlayer, isMyTurn, isConnected, lastError, sendAction, joinRoom, leaveRoom };
+  return {
+    gameState,
+    players,
+    myPlayer: getMyPlayer(),
+    isMyTurn: getIsMyTurn(),
+    isConnected,
+    lastError,
+    selectedAction,
+    raiseAmount,
+    setSelectedAction,
+    setRaiseAmount,
+    sendAction,
+    joinRoom,
+    leaveRoom,
+  };
 }
