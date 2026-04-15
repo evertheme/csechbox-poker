@@ -1,7 +1,6 @@
 "use client";
 
-import { useForm, type Resolver } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -19,176 +18,255 @@ import { Label } from "@/components/ui/label";
 import { useSocket } from "@/hooks/use-socket";
 import { socketClient } from "@/lib/socket";
 import { useLobbyStore } from "@/store/lobby-store";
-import { createRoomSchema, type CreateRoomInput } from "@/validations/game";
+import type { CreateRoomPayload } from "@/types/socket";
 
-function buildCreateRoomPayload(data: CreateRoomInput) {
-  const { name, config } = data;
-  return {
-    name,
-    maxPlayers: config.maxPlayers,
-    minPlayers: config.minPlayers,
-    ante: config.ante,
-    bringIn: config.bringIn,
-    smallBet: config.smallBet,
-    bigBet: config.bigBet,
-    buyIn: config.buyIn,
-    timeLimit: config.timeLimit,
-  };
+/** Full form shape (all fields required for controlled inputs). */
+interface CreateRoomFormState {
+  name: string;
+  maxPlayers: number;
+  minPlayers: number;
+  ante: number;
+  bringIn: number;
+  smallBet: number;
+  bigBet: number;
+  buyIn: number;
+  timeLimit: number;
 }
+
+const defaultForm: CreateRoomFormState = {
+  name: "",
+  maxPlayers: 8,
+  minPlayers: 2,
+  ante: 10,
+  bringIn: 5,
+  smallBet: 10,
+  bigBet: 20,
+  buyIn: 1000,
+  timeLimit: 30,
+};
 
 export function CreateRoomDialog() {
   const router = useRouter();
+  const { socket } = useSocket();
   const isCreatingRoom = useLobbyStore((s) => s.isCreatingRoom);
   const setIsCreatingRoom = useLobbyStore((s) => s.setIsCreatingRoom);
-  const { socket } = useSocket();
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState<CreateRoomFormState>(defaultForm);
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors, isSubmitting },
-  } = useForm<CreateRoomInput>({
-    resolver: zodResolver(createRoomSchema) as Resolver<CreateRoomInput>,
-    defaultValues: {
-      name: "",
-      isPrivate: false,
-      config: {
-        maxPlayers: 6,
-        minPlayers: 2,
-        ante: 5,
-        bringIn: 10,
-        smallBet: 20,
-        bigBet: 40,
-        buyIn: 500,
-        timeLimit: 30,
-      },
-    },
-  });
+  function updateField<K extends keyof CreateRoomFormState>(key: K, value: CreateRoomFormState[K]) {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+  }
 
-  function onSubmit(data: CreateRoomInput) {
+  function handleNumber<K extends keyof CreateRoomFormState>(key: K, raw: string) {
+    const n = Number.parseInt(raw, 10);
+    if (Number.isNaN(n)) return;
+    setFormData((prev) => ({ ...prev, [key]: n as CreateRoomFormState[K] }));
+  }
+
+  const handleCreate = () => {
     const s = socket ?? socketClient.getSocket();
     if (!s?.connected) {
-      toast.error("Not connected", {
-        description: "Connect to the server before creating a room.",
+      toast.error("Connection error", {
+        description: "Not connected to server",
       });
       return;
     }
 
-    const payload = buildCreateRoomPayload(data);
+    const name = formData.name.trim();
+    if (!name) {
+      toast.error("Invalid name", {
+        description: "Please enter a room name",
+      });
+      return;
+    }
 
-    s.emit("create-room", payload, (res) => {
-      if (res.success) {
-        toast.success("Room created", { description: res.message });
-        reset();
-        setIsCreatingRoom(false);
-        router.push(`/game/${res.roomId}`);
-      } else {
-        toast.error("Could not create room", { description: res.error });
+    if (formData.minPlayers < 2 || formData.maxPlayers < formData.minPlayers) {
+      toast.error("Invalid players", {
+        description: "Min players must be at least 2 and not exceed max players.",
+      });
+      return;
+    }
+
+    const payload: CreateRoomPayload = {
+      name,
+      maxPlayers: formData.maxPlayers,
+      minPlayers: formData.minPlayers,
+      ante: formData.ante,
+      bringIn: formData.bringIn,
+      smallBet: formData.smallBet,
+      bigBet: formData.bigBet,
+      buyIn: formData.buyIn,
+      timeLimit: formData.timeLimit,
+    };
+
+    setIsLoading(true);
+
+    s.emit("create-room", payload, (response) => {
+      if (!response.success) {
+        setIsLoading(false);
+        toast.error("Failed to create room", {
+          description: response.error,
+        });
+        return;
       }
+
+      toast.success("Room created!", {
+        description: `Room ${response.roomId} is ready`,
+      });
+      setIsCreatingRoom(false);
+
+      s.emit("join-room", response.roomId, (joinResponse) => {
+        setIsLoading(false);
+        if (joinResponse.success) {
+          router.push(`/game/${response.roomId}`);
+        } else {
+          toast.error("Could not join room", {
+            description: joinResponse.error,
+          });
+        }
+      });
     });
-  }
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    setIsCreatingRoom(open);
+    if (open) {
+      setIsLoading(false);
+    } else {
+      setFormData(defaultForm);
+      setIsLoading(false);
+    }
+  };
 
   return (
     <>
-      <Button variant="poker" size="sm" type="button" onClick={() => setIsCreatingRoom(true)}>
+      <Button variant="poker" size="sm" type="button" onClick={() => handleOpenChange(true)}>
         <Plus className="h-4 w-4" />
         New room
       </Button>
-      <Dialog open={isCreatingRoom} onOpenChange={setIsCreatingRoom}>
-        <DialogContent className="border-zinc-800 bg-zinc-900 sm:max-w-md">
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-0">
-            <DialogHeader>
-              <DialogTitle className="text-white">Create room</DialogTitle>
-              <DialogDescription>
-                Name your table and set stakes. You will join the room after it is created.
-              </DialogDescription>
-            </DialogHeader>
+      <Dialog open={isCreatingRoom} onOpenChange={handleOpenChange}>
+        <DialogContent className="border-zinc-800 bg-zinc-900 sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="text-white">Create new room</DialogTitle>
+            <DialogDescription>Set up your poker room configuration.</DialogDescription>
+          </DialogHeader>
 
-            <div className="flex flex-col gap-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="room-name">Room name</Label>
+          <div className="grid max-h-[min(70vh,520px)] gap-4 overflow-y-auto py-4 pr-1">
+            <div className="grid gap-2">
+              <Label htmlFor="room-name">Room name</Label>
+              <Input
+                id="room-name"
+                autoComplete="off"
+                placeholder="Friday night stud"
+                value={formData.name}
+                onChange={(e) => updateField("name", e.target.value)}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-2">
+                <Label htmlFor="min-players">Min players</Label>
                 <Input
-                  id="room-name"
-                  autoComplete="off"
-                  aria-invalid={!!errors.name}
-                  placeholder="e.g. Friday night stud"
-                  {...register("name")}
+                  id="min-players"
+                  type="number"
+                  min={2}
+                  max={8}
+                  value={formData.minPlayers}
+                  onChange={(e) => handleNumber("minPlayers", e.target.value)}
                 />
-                {errors.name && (
-                  <p className="text-sm text-destructive">{errors.name.message}</p>
-                )}
               </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="ante">Ante</Label>
-                  <Input
-                    id="ante"
-                    type="number"
-                    aria-invalid={!!errors.config?.ante}
-                    {...register("config.ante", { valueAsNumber: true })}
-                  />
-                  {errors.config?.ante && (
-                    <p className="text-sm text-destructive">{errors.config.ante.message}</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="max-players">Max players</Label>
-                  <Input
-                    id="max-players"
-                    type="number"
-                    min={2}
-                    max={8}
-                    aria-invalid={!!errors.config?.maxPlayers}
-                    {...register("config.maxPlayers", { valueAsNumber: true })}
-                  />
-                  {errors.config?.maxPlayers && (
-                    <p className="text-sm text-destructive">{errors.config.maxPlayers.message}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label htmlFor="buy-in">Buy-in</Label>
-                  <Input
-                    id="buy-in"
-                    type="number"
-                    aria-invalid={!!errors.config?.buyIn}
-                    {...register("config.buyIn", { valueAsNumber: true })}
-                  />
-                  {errors.config?.buyIn && (
-                    <p className="text-sm text-destructive">{errors.config.buyIn.message}</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="small-bet">Small bet</Label>
-                  <Input
-                    id="small-bet"
-                    type="number"
-                    aria-invalid={!!errors.config?.smallBet}
-                    {...register("config.smallBet", { valueAsNumber: true })}
-                  />
-                  {errors.config?.smallBet && (
-                    <p className="text-sm text-destructive">{errors.config.smallBet.message}</p>
-                  )}
-                </div>
+              <div className="grid gap-2">
+                <Label htmlFor="max-players">Max players</Label>
+                <Input
+                  id="max-players"
+                  type="number"
+                  min={2}
+                  max={8}
+                  value={formData.maxPlayers}
+                  onChange={(e) => handleNumber("maxPlayers", e.target.value)}
+                />
               </div>
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsCreatingRoom(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" variant="poker" disabled={isSubmitting}>
-                Create room
-              </Button>
-            </DialogFooter>
-          </form>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-2">
+                <Label htmlFor="ante">Ante</Label>
+                <Input
+                  id="ante"
+                  type="number"
+                  min={1}
+                  value={formData.ante}
+                  onChange={(e) => handleNumber("ante", e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="bring-in">Bring-in</Label>
+                <Input
+                  id="bring-in"
+                  type="number"
+                  min={1}
+                  value={formData.bringIn}
+                  onChange={(e) => handleNumber("bringIn", e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-2">
+                <Label htmlFor="small-bet">Small bet</Label>
+                <Input
+                  id="small-bet"
+                  type="number"
+                  min={1}
+                  value={formData.smallBet}
+                  onChange={(e) => handleNumber("smallBet", e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="big-bet">Big bet</Label>
+                <Input
+                  id="big-bet"
+                  type="number"
+                  min={1}
+                  value={formData.bigBet}
+                  onChange={(e) => handleNumber("bigBet", e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-2">
+                <Label htmlFor="buy-in">Buy-in</Label>
+                <Input
+                  id="buy-in"
+                  type="number"
+                  min={1}
+                  value={formData.buyIn}
+                  onChange={(e) => handleNumber("buyIn", e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="time-limit">Time limit (seconds)</Label>
+                <Input
+                  id="time-limit"
+                  type="number"
+                  min={10}
+                  max={120}
+                  value={formData.timeLimit}
+                  onChange={(e) => handleNumber("timeLimit", e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={isLoading}>
+              Cancel
+            </Button>
+            <Button type="button" variant="poker" onClick={handleCreate} disabled={isLoading}>
+              {isLoading ? "Creating…" : "Create room"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
