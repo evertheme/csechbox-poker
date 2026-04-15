@@ -101,8 +101,8 @@ export function PokerTable({
           aria-hidden
         />
 
-        <div className="absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1">
-          <GameInfo />
+        <div className="absolute left-1/2 top-1/2 z-10 flex w-[min(90%,280px)] -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1">
+          <GameInfo compact />
         </div>
 
         {seatOccupants.map((player, seatIndex) => {
