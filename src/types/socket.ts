@@ -68,9 +68,35 @@ export interface ServerToClientEvents {
 
 // ─── Client → Server ─────────────────────────────────────────────────────────
 
+/** Row returned by server `get-rooms` (see `server/src/socket/handlers/room-handler.ts`). */
+export interface LobbyListRoomRow {
+  id: string;
+  name: string;
+  players: number;
+  maxPlayers: number;
+  config: GameConfig & { name?: string };
+}
+
 export interface ClientToServerEvents {
   // Room management
   "room:list": () => void;
+  /** Server-native lobby fetch (ack callback). */
+  "get-rooms": (
+    callback: (
+      res:
+        | { success: true; rooms: LobbyListRoomRow[] }
+        | { success: false; error: string }
+    ) => void
+  ) => void;
+  /** Server-native join (ack callback). */
+  "join-room": (
+    roomId: string,
+    callback: (
+      res:
+        | { success: true; message: string; room: unknown }
+        | { success: false; error: string }
+    ) => void
+  ) => void;
   "room:create": (
     name: string,
     payload: {

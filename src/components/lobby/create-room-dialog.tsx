@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useForm, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
@@ -14,10 +13,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSocket } from "@/hooks/use-socket";
+import { useLobbyStore } from "@/store/lobby-store";
 import { createRoomSchema, type CreateRoomInput } from "@/validations/game";
 
 export function CreateRoomDialog() {
-  const [open, setOpen] = useState(false);
+  const isCreatingRoom = useLobbyStore((s) => s.isCreatingRoom);
+  const setIsCreatingRoom = useLobbyStore((s) => s.setIsCreatingRoom);
   const { socket } = useSocket();
   const {
     register,
@@ -50,16 +51,16 @@ export function CreateRoomDialog() {
       () => {}
     );
     reset();
-    setOpen(false);
+    setIsCreatingRoom(false);
   }
 
   return (
     <>
-      <Button variant="poker" size="sm" onClick={() => setOpen(true)}>
+      <Button variant="poker" size="sm" onClick={() => setIsCreatingRoom(true)}>
         <Plus className="h-4 w-4" />
         New Room
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={isCreatingRoom} onOpenChange={setIsCreatingRoom}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create Room</DialogTitle>

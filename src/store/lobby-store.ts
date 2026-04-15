@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { GamePhase, GameRoom } from "@/types/game";
+import type { GameConfig, GamePhase, GameRoom } from "@/types/game";
 
 export interface RoomInfo {
   id: string;
@@ -74,6 +74,29 @@ export const useLobbyStore = create<LobbyStore>((set) => ({
 
   setSearchQuery: (query) => set({ searchQuery: query }),
 }));
+
+/** Map server `get-rooms` list row into `RoomInfo`. */
+export function fromGetRoomsRow(row: {
+  id: string;
+  name: string;
+  players: number;
+  maxPlayers: number;
+  config: GameConfig;
+}): RoomInfo {
+  return {
+    id: row.id,
+    name: row.name,
+    players: row.players,
+    maxPlayers: row.maxPlayers,
+    config: {
+      ante: row.config.ante,
+      smallBet: row.config.smallBet,
+      bigBet: row.config.bigBet,
+      buyIn: row.config.buyIn,
+      bringIn: row.config.bringIn,
+    },
+  };
+}
 
 /** Map server `GameRoom` payloads into lobby `RoomInfo`. */
 export function toRoomInfo(room: GameRoom): RoomInfo {
