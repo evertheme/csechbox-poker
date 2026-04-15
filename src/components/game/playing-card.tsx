@@ -1,7 +1,7 @@
 "use client";
 
+import type { Card as CardType, Suit } from "@/types/game";
 import { cn } from "@/lib/utils";
-import type { Card as CardType } from "@/types/game";
 
 interface PlayingCardProps {
   card: CardType;
@@ -9,19 +9,24 @@ interface PlayingCardProps {
   className?: string;
 }
 
-const SUIT_SYMBOLS: Record<string, string> = {
-  spades: "♠",
+const suitSymbols: Record<Suit, string> = {
   hearts: "♥",
   diamonds: "♦",
   clubs: "♣",
+  spades: "♠",
 };
 
-const RED_SUITS = new Set(["hearts", "diamonds"]);
+const suitColors: Record<Suit, string> = {
+  hearts: "text-red-600",
+  diamonds: "text-red-600",
+  clubs: "text-neutral-900",
+  spades: "text-neutral-900",
+};
 
-const SIZE_CLASSES = {
-  sm: "w-8 h-12 text-xs",
-  md: "w-12 h-18 text-sm",
-  lg: "w-16 h-24 text-base",
+const sizes = {
+  sm: "h-12 w-8 text-xs",
+  md: "h-16 w-12 text-sm",
+  lg: "h-24 w-16 text-base",
 };
 
 export function PlayingCard({ card, size = "md", className }: PlayingCardProps) {
@@ -29,31 +34,40 @@ export function PlayingCard({ card, size = "md", className }: PlayingCardProps) 
     return (
       <div
         className={cn(
-          "rounded-md border-2 border-zinc-600 bg-zinc-800 flex items-center justify-center",
-          SIZE_CLASSES[size],
+          "flex items-center justify-center rounded border-2 border-zinc-400 bg-gradient-to-br from-blue-600 to-blue-900 shadow-md",
+          sizes[size],
           className
         )}
       >
-        <span className="text-zinc-600 text-lg">🂠</span>
+        <div className="rotate-45 text-[10px] text-white sm:text-xs">★</div>
       </div>
     );
   }
 
-  const isRed = RED_SUITS.has(card.suit);
-  const suit = SUIT_SYMBOLS[card.suit] ?? "";
+  const color = suitColors[card.suit];
+  const sym = suitSymbols[card.suit];
 
   return (
     <div
       className={cn(
-        "rounded-md border-2 border-zinc-300 bg-white flex flex-col items-start justify-between p-1 font-bold select-none",
-        SIZE_CLASSES[size],
-        isRed ? "text-red-600" : "text-zinc-900",
+        "flex flex-col items-center justify-between rounded border-2 border-zinc-300 bg-white p-1 shadow-md",
+        sizes[size],
         className
       )}
     >
-      <span className="leading-none">{card.rank}</span>
-      <span className="self-center text-lg leading-none">{suit}</span>
-      <span className="leading-none self-end rotate-180">{card.rank}</span>
+      <div className={cn("flex flex-col items-center font-bold leading-none", color)}>
+        <div>{card.rank}</div>
+        <div className="text-center">{sym}</div>
+      </div>
+
+      <div className={cn("leading-none", color, size === "sm" ? "text-base" : "text-2xl")}>
+        {sym}
+      </div>
+
+      <div className={cn("flex rotate-180 flex-col items-center font-bold leading-none", color)}>
+        <div className="text-center">{sym}</div>
+        <div>{card.rank}</div>
+      </div>
     </div>
   );
 }
