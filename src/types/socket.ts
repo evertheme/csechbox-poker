@@ -77,9 +77,21 @@ export interface LobbyListRoomRow {
   config: GameConfig & { name?: string };
 }
 
+/** Matches server `GameRoomCreateConfig` (`create-room` handler). */
+export type CreateRoomPayload = { name: string } & Partial<GameConfig>;
+
 export interface ClientToServerEvents {
   // Room management
   "room:list": () => void;
+  /** Server-native create (ack returns `roomId`). */
+  "create-room": (
+    config: CreateRoomPayload,
+    callback?: (
+      res:
+        | { success: true; roomId: string; message: string }
+        | { success: false; error: string }
+    ) => void
+  ) => void;
   /** Server-native lobby fetch (ack callback). */
   "get-rooms": (
     callback: (
