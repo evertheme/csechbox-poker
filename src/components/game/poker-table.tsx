@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type CSSProperties } from "react";
+import { useEffect, useMemo, type CSSProperties } from "react";
 import type { GameState } from "@/types/game";
 import { useGame } from "@/hooks/use-game";
 import { useGameStore } from "@/store/game-store";
@@ -72,7 +72,19 @@ export function PokerTable({
     );
   }
 
-  const seated = [...players].sort((a, b) => a.position - b.position).slice(0, MAX_SEATS);
+  const seatOccupants = useMemo(() => {
+    const slots: (typeof players[number] | undefined)[] = Array.from(
+      { length: MAX_SEATS },
+      () => undefined
+    );
+    for (const p of players) {
+      const i = p.position;
+      if (i >= 0 && i < MAX_SEATS && slots[i] === undefined) {
+        slots[i] = p;
+      }
+    }
+    return slots;
+  }, [players]);
 
   return (
     <div className="flex w-full max-w-4xl flex-col items-center gap-6 px-4">
@@ -93,18 +105,21 @@ export function PokerTable({
           <GameInfo />
         </div>
 
-        {seated.map((player, index) => {
-          const style = SEAT_POSITIONS[index % SEAT_POSITIONS.length];
+        {seatOccupants.map((player, seatIndex) => {
+          const style = SEAT_POSITIONS[seatIndex];
           return (
             <div
-              key={player.id}
+              key={seatIndex}
               className="absolute z-20 w-[min(28%,140px)] min-w-[96px] max-w-[160px]"
               style={style}
             >
               <PlayerSeat
                 player={player}
-                isCurrentTurn={gameState.currentPlayerId === player.id}
-                isMe={player.id === currentUserId}
+                position={seatIndex}
+                isCurrentPlayer={
+                  !!player && gameState.currentPlayerId === player.id
+                }
+                isMe={!!player && player.id === currentUserId}
               />
             </div>
           );
