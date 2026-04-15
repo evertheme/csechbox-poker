@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Card, CardContent } from "@/components/ui/card";
+import { useSocket } from "@/hooks/use-socket";
+import { socketClient } from "@/lib/socket";
 import { useGameStore } from "@/store/game-store";
 import type { GameState } from "@/types/game";
 import type { PlayerAction } from "@/types/game";
 import { cn, formatChips } from "@/lib/utils";
-import { useGame } from "@/hooks/use-game";
 
 export interface ActionPanelProps {
   roomId: string;
@@ -17,8 +18,8 @@ export interface ActionPanelProps {
 }
 
 export function ActionPanel({ roomId, gameState, currentUserId }: ActionPanelProps) {
+  const { socket } = useSocket();
   const players = useGameStore((s) => s.players);
-  const { sendAction } = useGame(roomId);
   const [raiseAmount, setRaiseAmount] = useState(0);
 
   const currentPlayer = players.find((p) => p.id === currentUserId);
@@ -32,7 +33,13 @@ export function ActionPanel({ roomId, gameState, currentUserId }: ActionPanelPro
   const maxRaise = currentPlayer?.chips ?? 0;
 
   const isMyTurn =
-    !!gameState && gameState.currentPlayerId === currentUserId && gameState.phase === "betting";
+    !!gameState &&
+    gameState.phase === "betting" &&
+    gameState.currentPlayerId === currentUserId;
+
+  const currentActor = gameState?.currentPlayerId
+    ? players.find((p) => p.id === gameState.currentPlayerId)
+    : undefined;
 
   useEffect(() => {
     if (!gameState || !currentPlayer) return;
@@ -53,16 +60,16 @@ export function ActionPanel({ roomId, gameState, currentUserId }: ActionPanelPro
   ]);
 
   const handleAction = (action: PlayerAction, amount?: number) => {
-    sendAction(action, amount);
+    const s = socket ?? socketClient.getSocket();
+    if (!s?.connected) return;
+    s.emit("player-action", { roomId, type: action, amount });
   };
 
   if (!gameState || gameState.phase !== "betting") {
     return (
       <Card className="border-zinc-800 bg-zinc-900/90">
-        <CardContent className="p-6 text-center text-zinc-400">
-          {gameState?.phase === "waiting"
-            ? "Waiting for the hand to start…"
-            : "Betting is not open right now."}
+        <CardContent className="p-6 text-center text-muted-foreground">
+          Waiting for game to start...
         </CardContent>
       </Card>
     );
@@ -71,23 +78,22 @@ export function ActionPanel({ roomId, gameState, currentUserId }: ActionPanelPro
   if (!currentPlayer) {
     return (
       <Card className="border-zinc-800 bg-zinc-900/90">
-        <CardContent className="p-6 text-center text-zinc-400">
-          Take a seat to get action controls.
+        <CardContent className="p-6 text-center text-muted-foreground">
+          Take a seat to use action controls.
         </CardContent>
       </Card>
     );
   }
 
-  const actor = players.find((p) => p.id === gameState.currentPlayerId);
-
   if (!isMyTurn) {
     return (
       <Card className="border-zinc-800 bg-zinc-900/90">
         <CardContent className="space-y-2 p-6 text-center">
-          <p className="text-zinc-400">Waiting for your turn…</p>
-          {actor && (
-            <p className="text-sm text-zinc-500">
-              Current: <span className="font-medium text-zinc-300">{actor.username}</span>
+          <p className="text-muted-foreground">Waiting for your turn...</p>
+          {currentActor && (
+            <p className="mt-2 text-sm text-zinc-500">
+              Current player:{" "}
+              <span className="font-medium text-zinc-300">{currentActor.username}</span>
             </p>
           )}
         </CardContent>
@@ -106,7 +112,7 @@ export function ActionPanel({ roomId, gameState, currentUserId }: ActionPanelPro
             <p className="text-2xl font-bold text-white">{formatChips(currentPlayer.chips)}</p>
           </div>
           <div className="text-right">
-            <p className="text-sm text-zinc-500">In this round</p>
+            <p className="text-sm text-zinc-500">Your bet (this round)</p>
             <p className="text-2xl font-bold text-white">{formatChips(myBet)}</p>
           </div>
         </div>
@@ -133,20 +139,12 @@ export function ActionPanel({ roomId, gameState, currentUserId }: ActionPanelPro
         )}
 
         <div className="grid grid-cols-3 gap-2">
-          <Button
-            variant="destructive"
-            className="w-full"
-            onClick={() => handleAction("fold")}
-          >
+          <Button variant="destructive" className="w-full" onClick={() => handleAction("fold")}>
             Fold
           </Button>
 
           {canCheck ? (
-            <Button
-              variant="secondary"
-              className="w-full"
-              onClick={() => handleAction("check")}
-            >
+            <Button variant="secondary" className="w-full" onClick={() => handleAction("check")}>
               Check
             </Button>
           ) : (
@@ -164,11 +162,11 @@ export function ActionPanel({ roomId, gameState, currentUserId }: ActionPanelPro
             variant="poker"
             className={cn("w-full")}
             disabled={currentPlayer.chips < minRaise || minRaise > maxRaise}
-            onClick={() =>
-              handleAction("raise", raiseAmount > 0 ? raiseAmount : minRaise)
-            }
+            onClick={() => handleAction("raise", raiseAmount > 0 ? raiseAmount : minRaise)}
           >
-            {raiseAmount > 0 ? `Raise ${formatChips(raiseAmount)}` : `Raise ${formatChips(minRaise)}`}
+            {raiseAmount > 0
+              ? `Raise ${formatChips(raiseAmount)}`
+              : `Raise ${formatChips(minRaise)}`}
           </Button>
         </div>
       </CardContent>
