@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { GameState, PlayerAction } from "@/types/game";
+import type { GameState, GameAction, PlayerAction } from "@/types/game";
 import type { Player } from "@/types/player";
 
 interface GameStore {
@@ -40,9 +40,8 @@ export const useGameStore = create<GameStore>((set) => ({
   applyAction: (playerId, action, amount) =>
     set((s) => {
       if (!s.gameState) return s;
-      return {
-        gameState: { ...s.gameState, lastAction: { playerId, action, amount } },
-      };
+      const lastAction: GameAction = { type: action, playerId, amount, timestamp: new Date() };
+      return { gameState: { ...s.gameState, lastAction } };
     }),
   reset: () => set(initialState),
 }));

@@ -32,8 +32,8 @@ export function PlayerSeat({ player, isCurrentTurn, isMe }: PlayerSeatProps) {
           {isMe && " (you)"}
         </span>
         <span className="text-xs text-yellow-400">{formatChips(player.chips)}</span>
-        {player.bet > 0 && (
-          <span className="text-xs text-zinc-500">Bet: {formatChips(player.bet)}</span>
+        {player.currentBet > 0 && (
+          <span className="text-xs text-zinc-500">Bet: {formatChips(player.currentBet)}</span>
         )}
       </div>
       {player.isFolded && <span className="text-xs text-red-400 font-semibold">FOLDED</span>}

@@ -5,26 +5,23 @@ import { Users, Lock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { GameRoom } from "@/types/game";
+import type { GameRoom, GamePhase } from "@/types/game";
 
 interface RoomCardProps {
   room: GameRoom;
 }
 
-const PHASE_LABELS: Record<GameRoom["phase"], string> = {
+const PHASE_LABELS: Record<GamePhase, string> = {
   waiting: "Waiting",
   ante: "Ante",
-  "third-street": "3rd Street",
-  "fourth-street": "4th Street",
-  "fifth-street": "5th Street",
-  "sixth-street": "6th Street",
-  "seventh-street": "7th Street",
+  dealing: "Dealing",
+  betting: "In Progress",
   showdown: "Showdown",
-  ended: "Ended",
+  complete: "Complete",
 };
 
 export function RoomCard({ room }: RoomCardProps) {
-  const isFull = room.playerCount >= room.maxPlayers;
+  const isFull = room.playerCount >= room.config.maxPlayers;
 
   return (
     <Card className="border-zinc-800 bg-zinc-900">
@@ -36,13 +33,13 @@ export function RoomCard({ room }: RoomCardProps) {
               {room.isPrivate && <Lock className="h-3.5 w-3.5 text-zinc-400 shrink-0" />}
             </div>
             <p className="mt-1 text-xs text-zinc-500">
-              Ante {room.ante} · Bring-in {room.bringIn} · {PHASE_LABELS[room.phase]}
+              Ante {room.config.ante} · Bring-in {room.config.bringIn} · {PHASE_LABELS[room.phase]}
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
             <span className={cn("flex items-center gap-1 text-sm", isFull ? "text-red-400" : "text-zinc-400")}>
               <Users className="h-3.5 w-3.5" />
-              {room.playerCount}/{room.maxPlayers}
+              {room.playerCount}/{room.config.maxPlayers}
             </span>
             <Button
               as={Link}

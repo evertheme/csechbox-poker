@@ -1,4 +1,4 @@
-export type Suit = "spades" | "hearts" | "diamonds" | "clubs";
+export type Suit = "hearts" | "diamonds" | "clubs" | "spades";
 export type Rank = "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "10" | "J" | "Q" | "K" | "A";
 
 export interface Card {
@@ -7,40 +7,75 @@ export interface Card {
   faceUp: boolean;
 }
 
-export type GamePhase =
-  | "waiting"
-  | "ante"
+/** High-level game lifecycle phase */
+export type GamePhase = "waiting" | "ante" | "dealing" | "betting" | "showdown" | "complete";
+
+/** Which street is currently being bet — only meaningful when phase === "betting" */
+export type BettingRound =
   | "third-street"
   | "fourth-street"
   | "fifth-street"
   | "sixth-street"
-  | "seventh-street"
-  | "showdown"
-  | "ended";
+  | "seventh-street";
 
-export type PlayerAction = "fold" | "check" | "call" | "bet" | "raise";
+/** All actions a player can take at the table */
+export type PlayerAction = "fold" | "check" | "call" | "bet" | "raise" | "all-in";
 
+export interface Pot {
+  amount: number;
+  /** Player IDs eligible to win this pot */
+  eligiblePlayers: string[];
+}
+
+export interface GameConfig {
+  maxPlayers: number;
+  minPlayers: number;
+  ante: number;
+  bringIn: number;
+  smallBet: number;
+  bigBet: number;
+  buyIn: number;
+  /** Per-turn time limit in seconds */
+  timeLimit: number;
+}
+
+export interface GameAction {
+  type: PlayerAction;
+  playerId: string;
+  amount?: number;
+  timestamp: Date;
+}
+
+export interface GameState {
+  id: string;
+  phase: GamePhase;
+  currentRound: BettingRound | null;
+  pot: number;
+  sidePots: Pot[];
+  currentBet: number;
+  currentPlayerId: string | null;
+  dealerPosition: number;
+  config: GameConfig;
+  createdAt: Date;
+  lastAction: GameAction | null;
+}
+
+/** Lobby-facing room summary (subset of full game state) */
 export interface GameRoom {
   id: string;
   name: string;
   hostId: string;
   playerCount: number;
-  maxPlayers: number;
-  ante: number;
-  bringIn: number;
-  smallBet: number;
-  bigBet: number;
   phase: GamePhase;
   isPrivate: boolean;
   createdAt: string;
+  config: GameConfig;
 }
 
-export interface GameState {
-  roomId: string;
-  phase: GamePhase;
-  pot: number;
-  currentPlayerId: string | null;
-  dealerId: string | null;
-  communityCards: Card[];
-  lastAction: { playerId: string; action: PlayerAction; amount?: number } | null;
+export interface HandRanking {
+  /** Lower is better (1 = royal flush) */
+  rank: number;
+  name: string;
+  cards: Card[];
+  description: string;
 }

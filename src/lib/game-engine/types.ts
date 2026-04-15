@@ -1,4 +1,4 @@
-import type { Card, GamePhase, PlayerAction } from "@/types/game";
+import type { Card, GamePhase, BettingRound, PlayerAction, Pot } from "@/types/game";
 import type { Player } from "@/types/player";
 
 export interface HandResult {
@@ -23,12 +23,18 @@ export type HandRank =
 
 export interface StudGameState {
   phase: GamePhase;
+  currentRound: BettingRound | null;
   players: Player[];
   pot: number;
-  sidePots: { amount: number; eligiblePlayerIds: string[] }[];
+  sidePots: Pot[];
   currentPlayerId: string | null;
   deck: Card[];
   bringInPlayerId: string | null;
   lastRaisePlayerId: string | null;
-  actionHistory: { playerId: string; action: PlayerAction; amount?: number; street: number }[];
+  actionHistory: {
+    playerId: string;
+    action: PlayerAction;
+    amount?: number;
+    round: BettingRound;
+  }[];
 }
