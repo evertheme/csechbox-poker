@@ -100,7 +100,12 @@ export default function GamePage({ params }: GamePageProps) {
         </div>
 
         <div className="flex flex-1 flex-col gap-4">
-          <PokerTable gameId={roomId} showBettingControls={false} />
+          <PokerTable
+            gameId={roomId}
+            gameState={gameState}
+            currentUserId={user.id}
+            showBettingControls={false}
+          />
           <ActionPanel roomId={roomId} />
         </div>
 
