@@ -12,7 +12,7 @@ import {
 import { socketClient } from "@/lib/socket";
 import { useAuthStore } from "@/store/auth-store";
 import { useGameStore } from "@/store/game-store";
-import { useLobbyStore } from "@/store/lobby-store";
+import { toRoomInfo, useLobbyStore } from "@/store/lobby-store";
 import type { PokerSocket } from "@/lib/socket";
 
 interface SocketContextValue {
@@ -70,9 +70,9 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     s.on("game:player-left", removePlayer);
     s.on("game:action", (action) => applyAction(action.playerId, action.type, action.amount));
     s.on("game:error", (err) => setError(err.message));
-    s.on("room:list", setRooms);
-    s.on("room:created", addRoom);
-    s.on("room:updated", updateRoom);
+    s.on("room:list", (rooms) => setRooms(rooms.map(toRoomInfo)));
+    s.on("room:created", (room) => addRoom(toRoomInfo(room)));
+    s.on("room:updated", (room) => updateRoom(room.id, toRoomInfo(room)));
     s.on("room:deleted", removeRoom);
 
     return () => {

@@ -5,10 +5,11 @@ import { Users, Lock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { GameRoom, GamePhase } from "@/types/game";
+import type { GamePhase } from "@/types/game";
+import type { RoomInfo } from "@/store/lobby-store";
 
 interface RoomCardProps {
-  room: GameRoom;
+  room: RoomInfo;
 }
 
 const PHASE_LABELS: Record<GamePhase, string> = {
@@ -21,7 +22,9 @@ const PHASE_LABELS: Record<GamePhase, string> = {
 };
 
 export function RoomCard({ room }: RoomCardProps) {
-  const isFull = room.playerCount >= room.config.maxPlayers;
+  const phase = room.phase ?? "waiting";
+  const bringIn = room.config.bringIn ?? 0;
+  const isFull = room.players >= room.maxPlayers;
 
   return (
     <Card className="border-zinc-800 bg-zinc-900">
@@ -33,13 +36,13 @@ export function RoomCard({ room }: RoomCardProps) {
               {room.isPrivate && <Lock className="h-3.5 w-3.5 text-zinc-400 shrink-0" />}
             </div>
             <p className="mt-1 text-xs text-zinc-500">
-              Ante {room.config.ante} · Bring-in {room.config.bringIn} · {PHASE_LABELS[room.phase]}
+              Ante {room.config.ante} · Bring-in {bringIn} · {PHASE_LABELS[phase]}
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
             <span className={cn("flex items-center gap-1 text-sm", isFull ? "text-red-400" : "text-zinc-400")}>
               <Users className="h-3.5 w-3.5" />
-              {room.playerCount}/{room.config.maxPlayers}
+              {room.players}/{room.maxPlayers}
             </span>
             {isFull ? (
               <Button size="sm" variant="poker" disabled>
