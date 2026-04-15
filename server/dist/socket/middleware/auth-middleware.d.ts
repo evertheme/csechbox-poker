@@ -1,9 +1,9 @@
-import type { Socket } from "socket.io";
-import type { SocketUser } from "../../types/index.js";
+import type { ExtendedError, Socket } from "socket.io";
 declare module "socket.io" {
-    interface Socket {
-        user?: SocketUser;
+    interface SocketData {
+        userId?: string;
+        username?: string;
     }
 }
-export declare function authMiddleware(socket: Socket, next: (err?: Error) => void): void;
+export declare const authMiddleware: (socket: Socket, next: (err?: ExtendedError) => void) => void;
 //# sourceMappingURL=auth-middleware.d.ts.map

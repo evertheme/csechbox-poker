@@ -10,8 +10,8 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
   });
 
   socket.on("room:create" as never, (name: string, payload: { config?: Record<string, unknown>; isPrivate?: boolean }) => {
-    if (!socket.user) return;
-    const room = manager.createRoom(name, socket.user.userId, {
+    if (!socket.data.userId) return;
+    const room = manager.createRoom(name, socket.data.userId, {
       isPrivate: payload.isPrivate,
       config: payload.config as Partial<GameConfig> | undefined,
     });
@@ -19,7 +19,7 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
   });
 
   socket.on("room:join" as never, (roomId: string) => {
-    if (!socket.user) return;
+    if (!socket.data.userId) return;
     const room = manager.getRoom(roomId);
     if (!room) {
       socket.emit("game:error", "Room not found" as never);

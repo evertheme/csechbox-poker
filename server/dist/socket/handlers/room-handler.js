@@ -5,16 +5,16 @@ export function registerRoomHandlers(io, socket) {
         socket.emit("room:list", manager.listRooms());
     });
     socket.on("room:create", (name, payload) => {
-        if (!socket.user)
+        if (!socket.data.userId)
             return;
-        const room = manager.createRoom(name, socket.user.userId, {
+        const room = manager.createRoom(name, socket.data.userId, {
             isPrivate: payload.isPrivate,
             config: payload.config,
         });
         io.emit("room:created", room);
     });
     socket.on("room:join", (roomId) => {
-        if (!socket.user)
+        if (!socket.data.userId)
             return;
         const room = manager.getRoom(roomId);
         if (!room) {

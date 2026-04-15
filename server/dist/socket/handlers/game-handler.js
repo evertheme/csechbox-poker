@@ -4,7 +4,7 @@ const log = createLogger("game-handler");
 const manager = GameRoomManager.getInstance();
 export function registerGameHandlers(io, socket) {
     socket.on("game:action", (action, amount) => {
-        if (!socket.user)
+        if (!socket.data.userId)
             return;
         const rooms = [...socket.rooms].filter((r) => r !== socket.id);
         const roomId = rooms[0];
@@ -13,7 +13,7 @@ export function registerGameHandlers(io, socket) {
         const room = manager.getRoom(roomId);
         if (!room)
             return;
-        io.to(roomId).emit("game:action", socket.user.userId, action, amount);
+        io.to(roomId).emit("game:action", socket.data.userId, action, amount);
         log.debug("game:action relayed", { roomId, action, amount });
     });
 }
