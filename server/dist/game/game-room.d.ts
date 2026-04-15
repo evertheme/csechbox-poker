@@ -1,38 +1,47 @@
 import type { Server, Socket } from "socket.io";
-import type { GameConfig, GamePhase } from "../types/index.js";
-import { StudGame } from "./stud-game.js";
+import type { GamePhase } from "../types/index.js";
+import type { GameConfig as BaseGameConfig } from "../types/index.js";
+import { StudGame, type GameConfig as StudTableConfig, type PlayerActionType } from "./stud-game.js";
 export type GameRoomCreateConfig = {
     name: string;
-} & Partial<GameConfig>;
-export declare class GameRoom {
-    readonly id: string;
-    readonly config: GameConfig & {
-        name: string;
-    };
-    private readonly io;
-    private readonly players;
-    private stud;
+} & Partial<BaseGameConfig>;
+export interface GameRoomState {
+    id: string;
     phase: GamePhase;
-    constructor(roomId: string, input: GameRoomCreateConfig, io: Server);
+    config: StudTableConfig;
+    players: {
+        userId: string;
+        username: string;
+    }[];
+    game: {
+        pot: number;
+        currentRound: string;
+        tableStake: number;
+        currentPlayerId: string | null;
+    };
+}
+export declare class GameRoom {
+    private readonly io;
+    private readonly game;
+    private readonly sockets;
+    private readonly playerNames;
+    readonly id: string;
+    readonly config: StudTableConfig;
+    constructor(id: string, input: GameRoomCreateConfig, io: Server);
+    getStudGame(): StudGame;
     addPlayer(socket: Socket, userId: string, username: string): void;
     removePlayer(userId: string): void;
-    private emitUpdated;
+    startGame(): void;
+    handlePlayerAction(userId: string, action: {
+        type: PlayerActionType;
+        amount?: number;
+    }): void;
     hasPlayer(userId: string): boolean;
     getPlayerCount(): number;
     isEmpty(): boolean;
     isFull(): boolean;
-    getState(): {
-        id: string;
-        phase: GamePhase;
-        config: GameConfig & {
-            name: string;
-        };
-        players: {
-            userId: string;
-            username: string;
-        }[];
-    };
-    /** Optional: start stud engine when table is ready */
-    ensureStud(): StudGame;
+    getState(): GameRoomState;
+    private broadcast;
+    private broadcastGameState;
 }
 //# sourceMappingURL=game-room.d.ts.map

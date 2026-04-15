@@ -1,4 +1,5 @@
 import type { Server, Socket } from "socket.io";
+import type { PlayerActionType } from "../../game/stud-game.js";
 import { rooms } from "../../game/live-room-store.js";
 import { createLogger } from "../../utils/logger.js";
 
@@ -16,9 +17,7 @@ export function registerGameHandlers(io: Server, socket: Socket): void {
         socket.emit("game:error", { message: "Room not found" });
         return;
       }
-      room.phase = "ante";
-      io.to(roomId).emit("game-started");
-      console.log(`🎲 Game started in room: ${roomId}`);
+      room.startGame();
       log.debug("start-game", { roomId });
     } catch (error: unknown) {
       socket.emit("game:error", { message: errMessage(error) });
@@ -30,19 +29,16 @@ export function registerGameHandlers(io: Server, socket: Socket): void {
     (action: { roomId: string; type: string; amount?: number }) => {
       try {
         const { roomId, type, amount } = action;
-        if (!rooms.has(roomId)) {
+        const room = rooms.get(roomId);
+        if (!room) {
           socket.emit("game:error", { message: "Room not found" });
           return;
         }
-
-        io.to(roomId).emit("player-action", {
-          playerId: socket.data.userId ?? socket.id,
-          type,
+        const userId = socket.data.userId ?? socket.id;
+        room.handlePlayerAction(userId, {
+          type: type as PlayerActionType,
           amount,
-          timestamp: new Date().toISOString(),
         });
-
-        console.log(`🎯 Player action: ${type} in room ${roomId}`);
         log.debug("player-action", { roomId, type, amount });
       } catch (error: unknown) {
         socket.emit("game:error", { message: errMessage(error) });

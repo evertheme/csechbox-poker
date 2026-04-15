@@ -42,6 +42,8 @@ export declare class StudGame {
     getStreetCap(): number;
     getCurrentRound(): BettingRound;
     getCurrentPlayerIndex(): number;
+    /** Whose turn it is in the betting rotation (if any). */
+    getCurrentPlayer(): GamePlayer | null;
     getDealerPosition(): number;
     getLastShowdownBest(): HandResult | null;
     getLastShowdownWinnerId(): string | null;

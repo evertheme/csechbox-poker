@@ -62,6 +62,11 @@ export class StudGame {
     getCurrentPlayerIndex() {
         return this.currentPlayerIndex;
     }
+    /** Whose turn it is in the betting rotation (if any). */
+    getCurrentPlayer() {
+        const p = this.players[this.currentPlayerIndex];
+        return p ?? null;
+    }
     getDealerPosition() {
         return this.dealerPosition;
     }
