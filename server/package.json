@@ -1,25 +1,33 @@
 {
-  "name": "csechbox-poker-server",
-  "version": "0.1.0",
+  "name": "poker-stud-server",
+  "version": "1.0.0",
+  "description": "Socket.IO server for Poker Stud game",
   "private": true,
   "type": "module",
+  "main": "dist/index.js",
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "clean": "rm -rf dist",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "socket.io": "^4.8.1",
-    "jsonwebtoken": "^9.0.2",
+    "express": "^4.21.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
     "@supabase/supabase-js": "^2.46.1"
   },
   "devDependencies": {
-    "@types/jsonwebtoken": "^9.0.7",
-    "@types/node": "^24.0.0",
-    "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
-  },
-  "engines": {
-    "node": ">=24.0.0"
+    "@types/node": "^22.10.2",
+    "@types/express": "^5.0.0",
+    "@types/cors": "^2.8.17",
+    "typescript": "^5.7.2",
+    "tsx": "^4.19.2"
   }
 }
