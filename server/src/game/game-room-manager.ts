@@ -1,4 +1,4 @@
-import type { GameRoom, GamePhase, GameConfig } from "../../../src/types/game.js";
+import type { GameRoom, GamePhase, GameConfig } from "../types/index.js";
 
 const DEFAULT_CONFIG: GameConfig = {
   maxPlayers: 6,
@@ -23,7 +23,10 @@ export class GameRoomManager {
   createRoom(
     name: string,
     hostId: string,
-    options: Partial<GameRoom & { config?: Partial<GameConfig> }> = {}
+    options: {
+      isPrivate?: boolean;
+      config?: Partial<GameConfig>;
+    } = {}
   ): GameRoom {
     const id = crypto.randomUUID();
     const config: GameConfig = {

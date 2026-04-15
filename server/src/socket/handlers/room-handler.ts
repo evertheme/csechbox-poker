@@ -1,4 +1,5 @@
 import type { Server, Socket } from "socket.io";
+import type { GameConfig } from "../../types/index.js";
 import { GameRoomManager } from "../../game/game-room-manager.js";
 
 const manager = GameRoomManager.getInstance();
@@ -12,7 +13,7 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
     if (!socket.user) return;
     const room = manager.createRoom(name, socket.user.userId, {
       isPrivate: payload.isPrivate,
-      config: payload.config as Partial<import("../../../src/types/game.js").GameConfig> | undefined,
+      config: payload.config as Partial<GameConfig> | undefined,
     });
     io.emit("room:created", room as never);
   });

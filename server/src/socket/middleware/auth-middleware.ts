@@ -1,13 +1,12 @@
 import type { Socket } from "socket.io";
+import type { SocketUser } from "../../types/index.js";
+import { createLogger } from "../../utils/logger.js";
 
-interface AuthPayload {
-  userId: string;
-  username: string;
-}
+const log = createLogger("auth-middleware");
 
 declare module "socket.io" {
   interface Socket {
-    user?: AuthPayload;
+    user?: SocketUser;
   }
 }
 
@@ -25,10 +24,13 @@ export function authMiddleware(
   // TODO: verify JWT against Supabase JWT secret
   // For now, decode without verification for development
   try {
-    const payload = JSON.parse(Buffer.from(token.split(".")[1] ?? "", "base64url").toString()) as AuthPayload;
+    const payload = JSON.parse(
+      Buffer.from(token.split(".")[1] ?? "", "base64url").toString()
+    ) as SocketUser;
     socket.user = payload;
     next();
-  } catch {
+  } catch (err) {
+    log.warn("invalid token", { err });
     next(new Error("Invalid token"));
   }
 }

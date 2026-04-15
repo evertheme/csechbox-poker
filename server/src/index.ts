@@ -1,8 +1,10 @@
 import { createServer } from "node:http";
 import { Server } from "socket.io";
-import { registerGameHandlers } from "./socket/handlers/game-handler.js";
-import { registerRoomHandlers } from "./socket/handlers/room-handler.js";
+import { registerGameHandlers, registerRoomHandlers } from "./socket/handlers/index.js";
 import { authMiddleware } from "./socket/middleware/auth-middleware.js";
+import { createLogger } from "./utils/logger.js";
+
+const logger = createLogger("index");
 
 const PORT = Number(process.env.PORT ?? 3001);
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN ?? "http://localhost:3000";
@@ -17,16 +19,16 @@ const io = new Server(httpServer, {
 io.use(authMiddleware);
 
 io.on("connection", (socket) => {
-  console.log(`[socket] connected: ${socket.id}`);
+  logger.info(`connected: ${socket.id}`);
 
   registerRoomHandlers(io, socket);
   registerGameHandlers(io, socket);
 
   socket.on("disconnect", (reason) => {
-    console.log(`[socket] disconnected: ${socket.id} (${reason})`);
+    logger.info(`disconnected: ${socket.id} (${reason})`);
   });
 });
 
 httpServer.listen(PORT, () => {
-  console.log(`[server] listening on :${PORT}`);
+  logger.info(`listening on :${PORT}`);
 });
