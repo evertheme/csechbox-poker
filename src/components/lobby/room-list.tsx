@@ -7,11 +7,11 @@ import { RoomCard } from "./room-card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function RoomList() {
-  const socket = useSocket();
+  const { socket } = useSocket();
   const { rooms, isLoading, searchQuery } = useLobbyStore();
 
   useEffect(() => {
-    if (socket.connected) socket.emit("room:list" as never);
+    if (socket?.connected) socket.emit("room:list" as never);
   }, [socket]);
 
   const filtered = rooms.filter((r) =>

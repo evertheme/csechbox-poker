@@ -1,39 +1,69 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
-import { getSocket, disconnectSocket } from "@/lib/socket";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { socketClient } from "@/lib/socket";
 import { useAuthStore } from "@/store/auth-store";
 import { useGameStore } from "@/store/game-store";
 import { useLobbyStore } from "@/store/lobby-store";
 import type { PokerSocket } from "@/lib/socket";
 
-const SocketContext = createContext<PokerSocket | null>(null);
+interface SocketContextValue {
+  socket: PokerSocket | null;
+  isConnected: boolean;
+  connect: (userId?: string) => void;
+  disconnect: () => void;
+}
+
+const SocketContext = createContext<SocketContextValue>({
+  socket: null,
+  isConnected: false,
+  connect: () => {},
+  disconnect: () => {},
+});
 
 export function SocketProvider({ children }: { children: ReactNode }) {
-  const socket = useRef(getSocket());
+  const socketRef = useRef<PokerSocket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
   const { user } = useAuthStore();
-  const { setConnected, setGameState, addPlayer, removePlayer, applyAction, setError } =
-    useGameStore();
+  const { setGameState, addPlayer, removePlayer, applyAction, setError } = useGameStore();
   const { setRooms, addRoom, updateRoom, removeRoom } = useLobbyStore();
 
-  // Connect/disconnect when auth state changes
-  useEffect(() => {
-    const s = socket.current;
+  const disconnect = useCallback(() => {
+    socketClient.disconnect();
+    socketRef.current = null;
+    setIsConnected(false);
+  }, []);
 
-    if (user && !s.connected) {
-      s.connect();
-    } else if (!user && s.connected) {
-      disconnectSocket();
-      socket.current = getSocket();
+  const connect = useCallback((userId?: string) => {
+    const s = socketClient.connect(userId);
+    socketRef.current = s;
+  }, []);
+
+  // Auto-connect/disconnect when auth state changes
+  useEffect(() => {
+    if (user) {
+      connect(user.id);
+    } else {
+      disconnect();
     }
-  }, [user]);
+  }, [user, connect, disconnect]);
 
-  // Register all server→client event handlers once
+  // Register server→client event handlers
   useEffect(() => {
-    const s = socket.current;
+    const s = socketClient.getOrCreate();
+    socketRef.current = s;
 
-    s.on("connect", () => setConnected(true));
-    s.on("disconnect", () => setConnected(false));
+    s.on("connect", () => setIsConnected(true));
+    s.on("disconnect", () => setIsConnected(false));
+    s.on("connect_error", () => setIsConnected(false));
     s.on("game:state", setGameState);
     s.on("game:player-joined", addPlayer);
     s.on("game:player-left", removePlayer);
@@ -47,6 +77,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     return () => {
       s.off("connect");
       s.off("disconnect");
+      s.off("connect_error");
       s.off("game:state");
       s.off("game:player-joined");
       s.off("game:player-left");
@@ -56,19 +87,23 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       s.off("room:created");
       s.off("room:updated");
       s.off("room:deleted");
-      disconnectSocket();
+      socketClient.disconnect();
     };
-  }, [setConnected, setGameState, addPlayer, removePlayer, applyAction, setError, setRooms, addRoom, updateRoom, removeRoom]);
+  }, [setGameState, addPlayer, removePlayer, applyAction, setError, setRooms, addRoom, updateRoom, removeRoom]);
 
   return (
-    <SocketContext.Provider value={socket.current}>
+    <SocketContext.Provider
+      value={{ socket: socketRef.current, isConnected, connect, disconnect }}
+    >
       {children}
     </SocketContext.Provider>
   );
 }
 
-export function useSocket(): PokerSocket {
-  const socket = useContext(SocketContext);
-  if (!socket) throw new Error("useSocket must be used within a SocketProvider");
-  return socket;
+export function useSocket(): SocketContextValue {
+  const ctx = useContext(SocketContext);
+  if (!ctx.socket && typeof window !== "undefined") {
+    console.warn("useSocket: socket not yet connected");
+  }
+  return ctx;
 }

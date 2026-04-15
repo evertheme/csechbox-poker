@@ -12,7 +12,7 @@ import { createRoomSchema, type CreateRoomInput } from "@/validations/game";
 
 export function CreateRoomDialog() {
   const [open, setOpen] = useState(false);
-  const socket = useSocket();
+  const { socket } = useSocket();
   const {
     register,
     handleSubmit,
@@ -21,7 +21,7 @@ export function CreateRoomDialog() {
   } = useForm<CreateRoomInput>({ resolver: zodResolver(createRoomSchema) });
 
   function onSubmit(data: CreateRoomInput) {
-    socket.emit("room:create", data.name, data);
+    socket?.emit("room:create", data.name, data);
     reset();
     setOpen(false);
   }
