@@ -1,12 +1,14 @@
 {
-  "name": "Poker",
+  "name": "Poker Stud",
   "short_name": "Poker",
-  "description": "7-Card Stud Poker",
-  "start_url": "/lobby",
+  "description": "Play 7-Card Stud Poker with friends online",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#09090b",
-  "theme_color": "#09090b",
   "orientation": "portrait",
+  "background_color": "#1a472a",
+  "theme_color": "#1a472a",
+  "categories": ["games", "entertainment"],
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -19,6 +21,15 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Join Game",
+      "short_name": "Join",
+      "description": "Join an existing game",
+      "url": "/lobby",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
