@@ -31,3 +31,4 @@ export function registerRoomHandlers(io, socket) {
         // Clean up rooms if needed
     });
 }
+//# sourceMappingURL=room-handler.js.map

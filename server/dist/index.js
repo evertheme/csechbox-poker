@@ -1,4 +1,3 @@
-import "dotenv/config";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
 import { registerGameHandlers, registerRoomHandlers } from "./socket/handlers/index.js";
@@ -24,3 +23,4 @@ io.on("connection", (socket) => {
 httpServer.listen(PORT, () => {
     logger.info(`listening on :${PORT}`);
 });
+//# sourceMappingURL=index.js.map

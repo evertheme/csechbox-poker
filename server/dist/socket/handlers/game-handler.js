@@ -17,3 +17,4 @@ export function registerGameHandlers(io, socket) {
         log.debug("game:action relayed", { roomId, action, amount });
     });
 }
+//# sourceMappingURL=game-handler.js.map

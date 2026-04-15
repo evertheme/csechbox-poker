@@ -12,3 +12,4 @@ export function createLogger(scope) {
     };
 }
 export const log = createLogger("server");
+//# sourceMappingURL=logger.js.map

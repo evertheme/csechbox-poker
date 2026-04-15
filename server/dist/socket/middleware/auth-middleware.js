@@ -18,3 +18,4 @@ export function authMiddleware(socket, next) {
         next(new Error("Invalid token"));
     }
 }
+//# sourceMappingURL=auth-middleware.js.map
