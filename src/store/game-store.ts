@@ -3,20 +3,39 @@ import { devtools } from "zustand/middleware";
 import type { GameState, GameAction, PlayerAction } from "@/types/game";
 import type { Player } from "@/types/player";
 
+function computeTurnState(
+  gameState: GameState | null,
+  myPlayerId: string | null,
+  players: Player[]
+): { isMyTurn: boolean; currentPlayer: Player | null } {
+  const isMyTurn =
+    !!gameState &&
+    gameState.phase === "betting" &&
+    gameState.currentPlayerId === myPlayerId;
+  const currentPlayer =
+    gameState?.currentPlayerId != null
+      ? players.find((p) => p.id === gameState.currentPlayerId) ?? null
+      : null;
+  return { isMyTurn, currentPlayer };
+}
+
 interface GameStore {
-  // Server-synced state
   gameState: GameState | null;
   players: Player[];
   myPlayerId: string | null;
   isConnected: boolean;
   lastError: string | null;
 
-  // UI state
+  /** True when it is the local player’s turn to act (betting phase). */
+  isMyTurn: boolean;
+  /** Player whose turn it is (from `players`), or null. */
+  currentPlayer: Player | null;
+
   selectedAction: PlayerAction | null;
   raiseAmount: number;
 
-  // Server-synced actions
   setGameState: (state: GameState) => void;
+  setIsMyTurn: (isMyTurn: boolean) => void;
   setPlayers: (players: Player[]) => void;
   addPlayer: (player: Player) => void;
   removePlayer: (playerId: string) => void;
@@ -26,11 +45,9 @@ interface GameStore {
   setError: (error: string | null) => void;
   applyAction: (playerId: string, action: PlayerAction, amount?: number) => void;
 
-  // UI actions
   setSelectedAction: (action: PlayerAction | null) => void;
   setRaiseAmount: (amount: number) => void;
 
-  // Derived helpers (computed at call-site to avoid stale closures)
   getMyPlayer: () => Player | null;
   getIsMyTurn: () => boolean;
 
@@ -43,6 +60,8 @@ const initialState = {
   myPlayerId: null,
   isConnected: false,
   lastError: null,
+  isMyTurn: false,
+  currentPlayer: null,
   selectedAction: null,
   raiseAmount: 0,
 } satisfies Partial<GameStore>;
@@ -52,33 +71,72 @@ export const useGameStore = create<GameStore>()(
     (set, get) => ({
       ...initialState,
 
-      setGameState: (gameState) => set({ gameState }, false, "setGameState"),
+      setGameState: (gameState) =>
+        set((s) => {
+          const { isMyTurn, currentPlayer } = computeTurnState(
+            gameState,
+            s.myPlayerId,
+            s.players
+          );
+          return { gameState, isMyTurn, currentPlayer };
+        }, false, "setGameState"),
 
-      setPlayers: (players) => set({ players }, false, "setPlayers"),
+      setIsMyTurn: (isMyTurn) => set({ isMyTurn }, false, "setIsMyTurn"),
+
+      setPlayers: (players) =>
+        set((s) => {
+          const { isMyTurn, currentPlayer } = computeTurnState(
+            s.gameState,
+            s.myPlayerId,
+            players
+          );
+          return { players, isMyTurn, currentPlayer };
+        }, false, "setPlayers"),
 
       addPlayer: (player) =>
-        set((s) => ({ players: [...s.players, player] }), false, "addPlayer"),
+        set((s) => {
+          const players = [...s.players, player];
+          const { isMyTurn, currentPlayer } = computeTurnState(
+            s.gameState,
+            s.myPlayerId,
+            players
+          );
+          return { players, isMyTurn, currentPlayer };
+        }, false, "addPlayer"),
 
       removePlayer: (playerId) =>
-        set(
-          (s) => ({ players: s.players.filter((p) => p.id !== playerId) }),
-          false,
-          "removePlayer"
-        ),
+        set((s) => {
+          const players = s.players.filter((p) => p.id !== playerId);
+          const { isMyTurn, currentPlayer } = computeTurnState(
+            s.gameState,
+            s.myPlayerId,
+            players
+          );
+          return { players, isMyTurn, currentPlayer };
+        }, false, "removePlayer"),
 
       updatePlayer: (playerId, updates) =>
-        set(
-          (s) => ({
-            players: s.players.map((p) =>
-              p.id === playerId ? { ...p, ...updates } : p
-            ),
-          }),
-          false,
-          "updatePlayer"
-        ),
+        set((s) => {
+          const players = s.players.map((p) =>
+            p.id === playerId ? { ...p, ...updates } : p
+          );
+          const { isMyTurn, currentPlayer } = computeTurnState(
+            s.gameState,
+            s.myPlayerId,
+            players
+          );
+          return { players, isMyTurn, currentPlayer };
+        }, false, "updatePlayer"),
 
       setMyPlayerId: (myPlayerId) =>
-        set({ myPlayerId }, false, "setMyPlayerId"),
+        set((s) => {
+          const { isMyTurn, currentPlayer } = computeTurnState(
+            s.gameState,
+            myPlayerId,
+            s.players
+          );
+          return { myPlayerId, isMyTurn, currentPlayer };
+        }, false, "setMyPlayerId"),
 
       setConnected: (isConnected) =>
         set({ isConnected }, false, "setConnected"),
@@ -96,7 +154,13 @@ export const useGameStore = create<GameStore>()(
               amount,
               timestamp: new Date(),
             };
-            return { gameState: { ...s.gameState, lastAction } };
+            const gameState = { ...s.gameState, lastAction };
+            const { isMyTurn, currentPlayer } = computeTurnState(
+              gameState,
+              s.myPlayerId,
+              s.players
+            );
+            return { gameState, isMyTurn, currentPlayer };
           },
           false,
           "applyAction"
@@ -113,10 +177,7 @@ export const useGameStore = create<GameStore>()(
         return players.find((p) => p.id === myPlayerId) ?? null;
       },
 
-      getIsMyTurn: () => {
-        const { gameState, myPlayerId } = get();
-        return gameState?.currentPlayerId === myPlayerId;
-      },
+      getIsMyTurn: () => get().isMyTurn,
 
       reset: () => set(initialState, false, "reset"),
     }),
