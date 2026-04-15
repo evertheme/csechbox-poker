@@ -17,3 +17,10 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - Prefer named exports over default exports
 - Use TypeScript strict mode — no `any` types
 - Server Components by default; add `"use client"` only when needed
+
+# Agent Behavior
+
+- Let me review and approve changes before applying them
+- Let me push changes to the GitHub repo — never push automatically
+
+
