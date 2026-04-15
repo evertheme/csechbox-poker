@@ -64,6 +64,8 @@ export interface ServerToClientEvents {
   // Errors & chat
   "game:error":    (error: { message: string; code?: string }) => void;
   "chat:message":  (message: ChatMessage) => void;
+  /** Server emits `chat-message` (see `server` game-handler). */
+  "chat-message":  (message: ChatMessage) => void;
 }
 
 // ─── Client → Server ─────────────────────────────────────────────────────────
@@ -120,13 +122,21 @@ export interface ClientToServerEvents {
   ) => void;
   "room:join":  (roomId: string, callback: (res: SocketResponse<GameState>) => void) => void;
   "room:leave": (roomId: string) => void;
+  /** Server-native leave room. */
+  "leave-room": (roomId: string) => void;
 
   // Game flow
   "game:start":    (roomId: string) => void;
+  /** Server-native start hand/table (see `server` game-handler). */
+  "start-game": (roomId: string) => void;
   "game:action":   (action: GameAction) => void;
+  /** Server-native player action (includes `roomId`). */
+  "player-action": (action: { roomId: string; type: string; amount?: number }) => void;
   "game:sit-down": (position: number) => void;
   "game:stand-up": () => void;
 
   // Chat
   "chat:send": (roomId: string, text: string) => void;
+  /** Server-native chat (see `server` game-handler). */
+  "send-message": (roomId: string, message: string) => void;
 }

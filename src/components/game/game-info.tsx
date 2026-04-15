@@ -21,7 +21,12 @@ const ROUND_LABELS: Record<BettingRound, string> = {
   "seventh-street": "7th Street",
 };
 
-export function GameInfo() {
+interface GameInfoProps {
+  /** Tighter layout for mobile footer strip. */
+  compact?: boolean;
+}
+
+export function GameInfo({ compact = false }: GameInfoProps) {
   const { gameState } = useGameStore();
 
   if (!gameState) return null;
@@ -32,8 +37,20 @@ export function GameInfo() {
       : PHASE_LABELS[gameState.phase];
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <span className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
+    <div
+      className={
+        compact
+          ? "flex flex-row items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/20 px-3 py-2"
+          : "flex flex-col items-center gap-2"
+      }
+    >
+      <span
+        className={
+          compact
+            ? "text-xs font-semibold uppercase tracking-wide text-zinc-400"
+            : "text-xs font-semibold uppercase tracking-widest text-zinc-500"
+        }
+      >
         {label}
       </span>
       <ChipStack amount={gameState.pot} label="Pot" />

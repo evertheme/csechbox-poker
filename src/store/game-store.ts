@@ -21,7 +21,7 @@ interface GameStore {
   addPlayer: (player: Player) => void;
   removePlayer: (playerId: string) => void;
   updatePlayer: (playerId: string, updates: Partial<Player>) => void;
-  setMyPlayerId: (id: string) => void;
+  setMyPlayerId: (id: string | null) => void;
   setConnected: (connected: boolean) => void;
   setError: (error: string | null) => void;
   applyAction: (playerId: string, action: PlayerAction, amount?: number) => void;

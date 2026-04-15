@@ -10,9 +10,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface PokerTableProps {
   gameId: string;
+  /** When false, render betting UI elsewhere (e.g. `ActionPanel`). Default: true. */
+  showBettingControls?: boolean;
 }
 
-export function PokerTable({ gameId }: PokerTableProps) {
+export function PokerTable({ gameId, showBettingControls = true }: PokerTableProps) {
   const { user } = useAuthStore();
   const { gameState, players, myPlayer, isMyTurn, isConnected, sendAction, joinRoom, leaveRoom } =
     useGame(gameId);
@@ -47,7 +49,7 @@ export function PokerTable({ gameId }: PokerTableProps) {
           ))}
         </div>
       </div>
-      {myPlayer && (
+      {showBettingControls && myPlayer && (
         <BettingControls
           isMyTurn={isMyTurn}
           canCheck={gameState.pot === 0}
