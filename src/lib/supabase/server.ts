@@ -1,18 +1,25 @@
-import { createClient } from "@supabase/supabase-js";
+import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
 /**
- * Server-side Supabase client for use in Server Components and Route Handlers.
- * Uses service role key — never expose this to the client.
- * Install @supabase/ssr for cookie-based auth in Server Components.
+ * Server-side Supabase client for Server Components and Route Handlers.
+ * Reads/writes the auth session cookie automatically.
  */
-export async function createServerClient() {
-  // Accessing cookies() marks this function as dynamic
-  await cookies();
-  return createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { persistSession: false },
-  });
+export async function createClient() {
+  const cookieStore = await cookies();
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => cookieStore.getAll(),
+        setAll: (cookiesToSet) => {
+          for (const { name, value, options } of cookiesToSet) {
+            cookieStore.set(name, value, options);
+          }
+        },
+      },
+    }
+  );
 }
