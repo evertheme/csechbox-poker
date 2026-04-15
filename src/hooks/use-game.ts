@@ -4,8 +4,8 @@ import { useGameStore } from "@/store/game-store";
 import { useSocket } from "./use-socket";
 import type { PlayerAction } from "@/types/game";
 
-export function useGame(gameId: string, token?: string) {
-  const socket = useSocket(token);
+export function useGame(gameId: string) {
+  const socket = useSocket();
   const { gameState, players, myPlayerId, isConnected, lastError } = useGameStore();
 
   const myPlayer = players.find((p) => p.id === myPlayerId) ?? null;

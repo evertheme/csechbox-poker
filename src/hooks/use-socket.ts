@@ -1,23 +1,36 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { getSocket } from "@/lib/socket";
+import { createContext, useContext, useEffect, useRef, type ReactNode } from "react";
+import { getSocket, disconnectSocket } from "@/lib/socket";
+import { useAuthStore } from "@/store/auth-store";
 import { useGameStore } from "@/store/game-store";
 import { useLobbyStore } from "@/store/lobby-store";
+import type { PokerSocket } from "@/lib/socket";
 
-export function useSocket(token?: string) {
+const SocketContext = createContext<PokerSocket | null>(null);
+
+export function SocketProvider({ children }: { children: ReactNode }) {
   const socket = useRef(getSocket());
-  const { setConnected, setGameState, setPlayers, addPlayer, removePlayer, applyAction, setError } =
+  const { user } = useAuthStore();
+  const { setConnected, setGameState, addPlayer, removePlayer, applyAction, setError } =
     useGameStore();
   const { setRooms, addRoom, updateRoom, removeRoom } = useLobbyStore();
 
+  // Connect/disconnect when auth state changes
   useEffect(() => {
     const s = socket.current;
 
-    if (token && !s.connected) {
-      s.auth = { token };
+    if (user && !s.connected) {
       s.connect();
+    } else if (!user && s.connected) {
+      disconnectSocket();
+      socket.current = getSocket();
     }
+  }, [user]);
+
+  // Register all server→client event handlers once
+  useEffect(() => {
+    const s = socket.current;
 
     s.on("connect", () => setConnected(true));
     s.on("disconnect", () => setConnected(false));
@@ -43,8 +56,19 @@ export function useSocket(token?: string) {
       s.off("room:created");
       s.off("room:updated");
       s.off("room:deleted");
+      disconnectSocket();
     };
-  }, [token, setConnected, setGameState, setPlayers, addPlayer, removePlayer, applyAction, setError, setRooms, addRoom, updateRoom, removeRoom]);
+  }, [setConnected, setGameState, addPlayer, removePlayer, applyAction, setError, setRooms, addRoom, updateRoom, removeRoom]);
 
-  return socket.current;
+  return (
+    <SocketContext.Provider value={socket.current}>
+      {children}
+    </SocketContext.Provider>
+  );
+}
+
+export function useSocket(): PokerSocket {
+  const socket = useContext(SocketContext);
+  if (!socket) throw new Error("useSocket must be used within a SocketProvider");
+  return socket;
 }

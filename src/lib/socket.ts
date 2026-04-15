@@ -1,7 +1,7 @@
 import { io, type Socket } from "socket.io-client";
 import type { ServerToClientEvents, ClientToServerEvents } from "@/types/socket";
 
-type PokerSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
+export type PokerSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
 let socket: PokerSocket | null = null;
 
