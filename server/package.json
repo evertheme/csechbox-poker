@@ -14,7 +14,8 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "clean": "rm -rf dist",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test:supabase": "tsx src/test-supabase.ts"
   },
   "dependencies": {
     "socket.io": "^4.8.1",
