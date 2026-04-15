@@ -18,6 +18,35 @@ export interface Player {
   isConnected: boolean;
 }
 
+export interface PlayerStats {
+  gamesPlayed: number;
+  gamesWon: number;
+  totalWinnings: number;
+  biggestPot: number;
+  handsPlayed: number;
+  handsFolded: number;
+  /** Fraction 0–1 */
+  winRate: number;
+}
+
+export interface PlayerProfile {
+  id: string;
+  username: string;
+  email: string;
+  avatarUrl?: string;
+  chips: number;
+  stats: PlayerStats;
+  createdAt: Date;
+  lastActive: Date;
+}
+
+export interface SeatPosition {
+  position: number;
+  player: Player | null;
+  isOccupied: boolean;
+}
+
+/** Authenticated session user — stored in auth store */
 export interface AuthUser {
   id: string;
   email: string;
