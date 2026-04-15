@@ -11,7 +11,7 @@ export function RoomList() {
   const { rooms, isLoading, searchQuery } = useLobbyStore();
 
   useEffect(() => {
-    if (socket?.connected) socket.emit("room:list" as never);
+    if (socket?.connected) socket.emit("room:list");
   }, [socket]);
 
   const filtered = rooms.filter((r) =>

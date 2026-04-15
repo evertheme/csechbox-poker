@@ -8,9 +8,12 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
     socket.emit("room:list", manager.listRooms() as never);
   });
 
-  socket.on("room:create" as never, (name: string, options: Record<string, unknown>) => {
+  socket.on("room:create" as never, (name: string, payload: { config?: Record<string, unknown>; isPrivate?: boolean }) => {
     if (!socket.user) return;
-    const room = manager.createRoom(name, socket.user.userId, options);
+    const room = manager.createRoom(name, socket.user.userId, {
+      isPrivate: payload.isPrivate,
+      config: payload.config as Partial<import("../../../src/types/game.js").GameConfig> | undefined,
+    });
     io.emit("room:created", room as never);
   });
 

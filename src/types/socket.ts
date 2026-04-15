@@ -70,9 +70,14 @@ export interface ServerToClientEvents {
 
 export interface ClientToServerEvents {
   // Room management
+  "room:list": () => void;
   "room:create": (
     name: string,
-    config: Partial<GameConfig>,
+    payload: {
+      config: Partial<GameConfig>;
+      isPrivate?: boolean;
+      password?: string;
+    },
     callback: (res: SocketResponse<GameRoom>) => void
   ) => void;
   "room:join":  (roomId: string, callback: (res: SocketResponse<GameState>) => void) => void;

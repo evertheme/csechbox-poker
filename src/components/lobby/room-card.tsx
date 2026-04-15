@@ -41,15 +41,15 @@ export function RoomCard({ room }: RoomCardProps) {
               <Users className="h-3.5 w-3.5" />
               {room.playerCount}/{room.config.maxPlayers}
             </span>
-            <Button
-              as={Link}
-              href={`/game/${room.id}`}
-              size="sm"
-              variant="poker"
-              disabled={isFull}
-            >
-              Join
-            </Button>
+            {isFull ? (
+              <Button size="sm" variant="poker" disabled>
+                Join
+              </Button>
+            ) : (
+              <Button asChild size="sm" variant="poker">
+                <Link href={`/game/${room.id}`}>Join</Link>
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>

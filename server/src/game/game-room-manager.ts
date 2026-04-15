@@ -1,4 +1,15 @@
-import type { GameRoom, GamePhase } from "../../../src/types/game.js";
+import type { GameRoom, GamePhase, GameConfig } from "../../../src/types/game.js";
+
+const DEFAULT_CONFIG: GameConfig = {
+  maxPlayers: 6,
+  minPlayers: 2,
+  ante: 5,
+  bringIn: 10,
+  smallBet: 20,
+  bigBet: 40,
+  buyIn: 500,
+  timeLimit: 30,
+};
 
 export class GameRoomManager {
   private static instance: GameRoomManager;
@@ -9,21 +20,25 @@ export class GameRoomManager {
     return GameRoomManager.instance;
   }
 
-  createRoom(name: string, hostId: string, options: Partial<GameRoom> = {}): GameRoom {
+  createRoom(
+    name: string,
+    hostId: string,
+    options: Partial<GameRoom & { config?: Partial<GameConfig> }> = {}
+  ): GameRoom {
     const id = crypto.randomUUID();
+    const config: GameConfig = {
+      ...DEFAULT_CONFIG,
+      ...options.config,
+    };
     const room: GameRoom = {
       id,
       name,
       hostId,
       playerCount: 1,
-      maxPlayers: options.maxPlayers ?? 6,
-      ante: options.ante ?? 5,
-      bringIn: options.bringIn ?? 10,
-      smallBet: options.smallBet ?? 20,
-      bigBet: options.bigBet ?? 40,
       phase: "waiting" as GamePhase,
       isPrivate: options.isPrivate ?? false,
       createdAt: new Date().toISOString(),
+      config,
     };
     this.rooms.set(id, room);
     return room;

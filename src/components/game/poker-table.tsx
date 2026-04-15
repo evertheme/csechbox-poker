@@ -15,7 +15,7 @@ interface PokerTableProps {
 export function PokerTable({ gameId }: PokerTableProps) {
   const { user } = useAuthStore();
   const { gameState, players, myPlayer, isMyTurn, isConnected, sendAction, joinRoom, leaveRoom } =
-    useGame(gameId, undefined);
+    useGame(gameId);
 
   useEffect(() => {
     joinRoom();
@@ -51,7 +51,7 @@ export function PokerTable({ gameId }: PokerTableProps) {
         <BettingControls
           isMyTurn={isMyTurn}
           canCheck={gameState.pot === 0}
-          callAmount={myPlayer.bet}
+          callAmount={myPlayer.currentBet}
           minRaise={20}
           maxRaise={myPlayer.chips}
           onAction={sendAction}
