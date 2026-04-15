@@ -1,39 +1,156 @@
 import type { Server, Socket } from "socket.io";
-import type { GameConfig } from "../../types/index.js";
-import { GameRoomManager } from "../../game/game-room-manager.js";
+import {
+  GameRoom,
+  type GameRoomCreateConfig,
+} from "../../game/game-room.js";
+import { generateRoomId, rooms } from "../../game/live-room-store.js";
 
-const manager = GameRoomManager.getInstance();
+type AckFn<T> = (payload: T) => void;
+
+function errMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 export function registerRoomHandlers(io: Server, socket: Socket): void {
-  socket.on("room:list" as never, () => {
-    socket.emit("room:list", manager.listRooms() as never);
-  });
+  socket.on(
+    "create-room",
+    (
+      config: GameRoomCreateConfig,
+      callback?: AckFn<
+        | { success: true; roomId: string; message: string }
+        | { success: false; error: string }
+      >
+    ) => {
+      if (typeof callback !== "function") return;
+      try {
+        const roomId = generateRoomId();
+        const room = new GameRoom(roomId, config, io);
+        rooms.set(roomId, room);
 
-  socket.on("room:create" as never, (name: string, payload: { config?: Record<string, unknown>; isPrivate?: boolean }) => {
-    if (!socket.data.userId) return;
-    const room = manager.createRoom(name, socket.data.userId, {
-      isPrivate: payload.isPrivate,
-      config: payload.config as Partial<GameConfig> | undefined,
-    });
-    io.emit("room:created", room as never);
-  });
+        console.log(`🎮 Room created: ${roomId}`);
 
-  socket.on("room:join" as never, (roomId: string) => {
-    if (!socket.data.userId) return;
-    const room = manager.getRoom(roomId);
-    if (!room) {
-      socket.emit("game:error", "Room not found" as never);
-      return;
+        callback({
+          success: true,
+          roomId,
+          message: "Room created successfully",
+        });
+      } catch (error: unknown) {
+        callback({
+          success: false,
+          error: errMessage(error),
+        });
+      }
     }
-    socket.join(roomId);
-    io.to(roomId).emit("room:updated", room as never);
+  );
+
+  socket.on(
+    "join-room",
+    (
+      roomId: string,
+      callback?: AckFn<
+        | {
+            success: true;
+            room: ReturnType<GameRoom["getState"]>;
+            message: string;
+          }
+        | { success: false; error: string }
+      >
+    ) => {
+      if (typeof callback !== "function") return;
+      try {
+        const room = rooms.get(roomId);
+
+        if (!room) {
+          throw new Error("Room not found");
+        }
+
+        const userId = socket.data.userId ?? socket.id;
+        const username =
+          socket.data.username ?? `Player_${userId.slice(0, 4)}`;
+
+        room.addPlayer(socket, userId, username);
+        void socket.join(roomId);
+
+        console.log(`👤 ${username} joined room: ${roomId}`);
+
+        callback({
+          success: true,
+          room: room.getState(),
+          message: "Joined room successfully",
+        });
+      } catch (error: unknown) {
+        callback({
+          success: false,
+          error: errMessage(error),
+        });
+      }
+    }
+  );
+
+  socket.on("leave-room", (roomId: string) => {
+    try {
+      const room = rooms.get(roomId);
+      if (!room) return;
+
+      const userId = socket.data.userId ?? socket.id;
+      room.removePlayer(userId);
+      void socket.leave(roomId);
+
+      console.log(`👋 Player left room: ${roomId}`);
+
+      if (room.isEmpty()) {
+        rooms.delete(roomId);
+        console.log(`🗑️ Room deleted: ${roomId}`);
+      }
+    } catch (error) {
+      console.error("Error leaving room:", error);
+    }
   });
 
-  socket.on("room:leave" as never, (roomId: string) => {
-    socket.leave(roomId);
-  });
+  socket.on(
+    "get-rooms",
+    (
+      callback?: AckFn<{
+        success: true;
+        rooms: {
+          id: string;
+          name: string;
+          players: number;
+          maxPlayers: number;
+          config: GameRoom["config"];
+        }[];
+      }>
+    ) => {
+      if (typeof callback !== "function") return;
+      const availableRooms = [...rooms.values()]
+        .filter((room) => !room.isFull())
+        .map((room) => ({
+          id: room.id,
+          name: room.config.name,
+          players: room.getPlayerCount(),
+          maxPlayers: room.config.maxPlayers,
+          config: room.config,
+        }));
+
+      callback({
+        success: true,
+        rooms: availableRooms,
+      });
+    }
+  );
 
   socket.on("disconnect", () => {
-    // Clean up rooms if needed
+    const userId = socket.data.userId ?? socket.id;
+
+    for (const [roomId, room] of [...rooms.entries()]) {
+      if (room.hasPlayer(userId)) {
+        room.removePlayer(userId);
+
+        if (room.isEmpty()) {
+          rooms.delete(roomId);
+          console.log(`🗑️ Room deleted: ${roomId}`);
+        }
+      }
+    }
   });
 }

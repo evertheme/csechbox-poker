@@ -1,0 +1,1 @@
+{"version":3,"file":"live-room-store.js","sourceRoot":"","sources":["../../src/game/live-room-store.ts"],"names":[],"mappings":"AAEA,oDAAoD;AACpD,MAAM,CAAC,MAAM,KAAK,GAAG,IAAI,GAAG,EAAoB,CAAC;AAEjD,MAAM,UAAU,cAAc;IAC5B,OAAO,IAAI,CAAC,MAAM,EAAE,CAAC,QAAQ,CAAC,EAAE,CAAC,CAAC,SAAS,CAAC,CAAC,EAAE,CAAC,CAAC,CAAC,WAAW,EAAE,CAAC;AAClE,CAAC"}

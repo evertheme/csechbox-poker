@@ -42,8 +42,8 @@ export interface GameState {
     createdAt: Date;
     lastAction: GameAction | null;
 }
-/** Lobby-facing room summary */
-export interface GameRoom {
+/** Lobby-facing room summary (DTO — not the runtime `GameRoom` class). */
+export interface LobbyRoom {
     id: string;
     name: string;
     hostId: string;

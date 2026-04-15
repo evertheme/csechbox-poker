@@ -1,14 +1,38 @@
-import type { GameRoom } from "../types/index.js";
+import type { Server, Socket } from "socket.io";
+import type { GameConfig, GamePhase } from "../types/index.js";
 import { StudGame } from "./stud-game.js";
-/**
- * Wraps lobby metadata with optional in-memory stud engine instance.
- */
-export declare class GameRoomController {
-    private readonly _room;
-    private _stud;
-    constructor(room: GameRoom);
-    get room(): GameRoom;
-    startStud(): StudGame;
-    get activeGame(): StudGame | null;
+export type GameRoomCreateConfig = {
+    name: string;
+} & Partial<GameConfig>;
+export declare class GameRoom {
+    readonly id: string;
+    readonly config: GameConfig & {
+        name: string;
+    };
+    private readonly io;
+    private readonly players;
+    private stud;
+    phase: GamePhase;
+    constructor(roomId: string, input: GameRoomCreateConfig, io: Server);
+    addPlayer(socket: Socket, userId: string, username: string): void;
+    removePlayer(userId: string): void;
+    private emitUpdated;
+    hasPlayer(userId: string): boolean;
+    getPlayerCount(): number;
+    isEmpty(): boolean;
+    isFull(): boolean;
+    getState(): {
+        id: string;
+        phase: GamePhase;
+        config: GameConfig & {
+            name: string;
+        };
+        players: {
+            userId: string;
+            username: string;
+        }[];
+    };
+    /** Optional: start stud engine when table is ready */
+    ensureStud(): StudGame;
 }
 //# sourceMappingURL=game-room.d.ts.map

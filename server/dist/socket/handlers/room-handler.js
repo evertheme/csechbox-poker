@@ -1,34 +1,102 @@
-import { GameRoomManager } from "../../game/game-room-manager.js";
-const manager = GameRoomManager.getInstance();
+import { GameRoom, } from "../../game/game-room.js";
+import { generateRoomId, rooms } from "../../game/live-room-store.js";
+function errMessage(error) {
+    return error instanceof Error ? error.message : String(error);
+}
 export function registerRoomHandlers(io, socket) {
-    socket.on("room:list", () => {
-        socket.emit("room:list", manager.listRooms());
-    });
-    socket.on("room:create", (name, payload) => {
-        if (!socket.data.userId)
+    socket.on("create-room", (config, callback) => {
+        if (typeof callback !== "function")
             return;
-        const room = manager.createRoom(name, socket.data.userId, {
-            isPrivate: payload.isPrivate,
-            config: payload.config,
-        });
-        io.emit("room:created", room);
-    });
-    socket.on("room:join", (roomId) => {
-        if (!socket.data.userId)
-            return;
-        const room = manager.getRoom(roomId);
-        if (!room) {
-            socket.emit("game:error", "Room not found");
-            return;
+        try {
+            const roomId = generateRoomId();
+            const room = new GameRoom(roomId, config, io);
+            rooms.set(roomId, room);
+            console.log(`🎮 Room created: ${roomId}`);
+            callback({
+                success: true,
+                roomId,
+                message: "Room created successfully",
+            });
         }
-        socket.join(roomId);
-        io.to(roomId).emit("room:updated", room);
+        catch (error) {
+            callback({
+                success: false,
+                error: errMessage(error),
+            });
+        }
     });
-    socket.on("room:leave", (roomId) => {
-        socket.leave(roomId);
+    socket.on("join-room", (roomId, callback) => {
+        if (typeof callback !== "function")
+            return;
+        try {
+            const room = rooms.get(roomId);
+            if (!room) {
+                throw new Error("Room not found");
+            }
+            const userId = socket.data.userId ?? socket.id;
+            const username = socket.data.username ?? `Player_${userId.slice(0, 4)}`;
+            room.addPlayer(socket, userId, username);
+            void socket.join(roomId);
+            console.log(`👤 ${username} joined room: ${roomId}`);
+            callback({
+                success: true,
+                room: room.getState(),
+                message: "Joined room successfully",
+            });
+        }
+        catch (error) {
+            callback({
+                success: false,
+                error: errMessage(error),
+            });
+        }
+    });
+    socket.on("leave-room", (roomId) => {
+        try {
+            const room = rooms.get(roomId);
+            if (!room)
+                return;
+            const userId = socket.data.userId ?? socket.id;
+            room.removePlayer(userId);
+            void socket.leave(roomId);
+            console.log(`👋 Player left room: ${roomId}`);
+            if (room.isEmpty()) {
+                rooms.delete(roomId);
+                console.log(`🗑️ Room deleted: ${roomId}`);
+            }
+        }
+        catch (error) {
+            console.error("Error leaving room:", error);
+        }
+    });
+    socket.on("get-rooms", (callback) => {
+        if (typeof callback !== "function")
+            return;
+        const availableRooms = [...rooms.values()]
+            .filter((room) => !room.isFull())
+            .map((room) => ({
+            id: room.id,
+            name: room.config.name,
+            players: room.getPlayerCount(),
+            maxPlayers: room.config.maxPlayers,
+            config: room.config,
+        }));
+        callback({
+            success: true,
+            rooms: availableRooms,
+        });
     });
     socket.on("disconnect", () => {
-        // Clean up rooms if needed
+        const userId = socket.data.userId ?? socket.id;
+        for (const [roomId, room] of [...rooms.entries()]) {
+            if (room.hasPlayer(userId)) {
+                room.removePlayer(userId);
+                if (room.isEmpty()) {
+                    rooms.delete(roomId);
+                    console.log(`🗑️ Room deleted: ${roomId}`);
+                }
+            }
+        }
     });
 }
 //# sourceMappingURL=room-handler.js.map
