@@ -1,14 +1,22 @@
-import { clsx, type ClassValue } from "clsx";
+import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatChips(chips: number): string {
-  if (chips >= 1_000_000) return `${(chips / 1_000_000).toFixed(1)}M`;
-  if (chips >= 1_000) return `${(chips / 1_000).toFixed(1)}K`;
-  return chips.toString();
+export function formatChips(amount: number): string {
+  return `$${amount.toLocaleString()}`;
+}
+
+export function formatTime(seconds: number): string {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+}
+
+export function getAvatarUrl(userId: string): string {
+  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(userId)}`;
 }
 
 export function formatCurrency(amount: number): string {
