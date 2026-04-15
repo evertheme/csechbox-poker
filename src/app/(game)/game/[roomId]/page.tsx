@@ -106,7 +106,11 @@ export default function GamePage({ params }: GamePageProps) {
             currentUserId={user.id}
             showBettingControls={false}
           />
-          <ActionPanel roomId={roomId} />
+          <ActionPanel
+            roomId={roomId}
+            gameState={gameState}
+            currentUserId={user.id}
+          />
         </div>
 
         <div className="hidden lg:block lg:w-64">
