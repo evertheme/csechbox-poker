@@ -65,10 +65,11 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     s.on("disconnect", () => setIsConnected(false));
     s.on("connect_error", () => setIsConnected(false));
     s.on("game:state", setGameState);
+    s.on("game:start", setGameState);
     s.on("game:player-joined", addPlayer);
     s.on("game:player-left", removePlayer);
-    s.on("game:action", applyAction);
-    s.on("game:error", (msg) => setError(msg));
+    s.on("game:action", (action) => applyAction(action.playerId, action.type, action.amount));
+    s.on("game:error", (err) => setError(err.message));
     s.on("room:list", setRooms);
     s.on("room:created", addRoom);
     s.on("room:updated", updateRoom);
@@ -79,6 +80,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       s.off("disconnect");
       s.off("connect_error");
       s.off("game:state");
+      s.off("game:start");
       s.off("game:player-joined");
       s.off("game:player-left");
       s.off("game:action");
