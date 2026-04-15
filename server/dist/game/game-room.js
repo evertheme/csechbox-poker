@@ -10,15 +10,15 @@ const DEFAULT_CONFIG = {
     timeLimit: 30,
 };
 export class GameRoom {
+    id;
     io;
     game;
     sockets = new Map();
     playerNames = new Map();
-    id;
     config;
     constructor(id, input, io) {
-        this.io = io;
         this.id = id;
+        this.io = io;
         this.config = {
             ...DEFAULT_CONFIG,
             ...input,
@@ -54,8 +54,8 @@ export class GameRoom {
         const socket = this.sockets.get(userId);
         if (!socket)
             return;
-        const username = this.playerNames.get(userId);
         this.sockets.delete(userId);
+        const username = this.playerNames.get(userId);
         this.playerNames.delete(userId);
         this.game.removePlayer(userId);
         this.broadcast("player-left", {

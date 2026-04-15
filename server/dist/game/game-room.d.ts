@@ -1,14 +1,16 @@
 import type { Server, Socket } from "socket.io";
 import type { GamePhase } from "../types/index.js";
 import type { GameConfig as BaseGameConfig } from "../types/index.js";
-import { StudGame, type GameConfig as StudTableConfig, type PlayerActionType } from "./stud-game.js";
+import { StudGame, type GameConfig, type GamePlayer, type PlayerActionType } from "./stud-game.js";
+export type { GameConfig, GamePlayer };
+/** Input when creating a room (name + optional limit overrides). */
 export type GameRoomCreateConfig = {
     name: string;
 } & Partial<BaseGameConfig>;
 export interface GameRoomState {
     id: string;
     phase: GamePhase;
-    config: StudTableConfig;
+    config: GameConfig;
     players: {
         userId: string;
         username: string;
@@ -21,12 +23,12 @@ export interface GameRoomState {
     };
 }
 export declare class GameRoom {
-    private readonly io;
-    private readonly game;
-    private readonly sockets;
-    private readonly playerNames;
     readonly id: string;
-    readonly config: StudTableConfig;
+    private readonly io;
+    private game;
+    private sockets;
+    private playerNames;
+    readonly config: GameConfig;
     constructor(id: string, input: GameRoomCreateConfig, io: Server);
     getStudGame(): StudGame;
     addPlayer(socket: Socket, userId: string, username: string): void;

@@ -3,9 +3,12 @@ import type { GamePhase } from "../types/index.js";
 import type { GameConfig as BaseGameConfig } from "../types/index.js";
 import {
   StudGame,
-  type GameConfig as StudTableConfig,
+  type GameConfig,
+  type GamePlayer,
   type PlayerActionType,
 } from "./stud-game.js";
+
+export type { GameConfig, GamePlayer };
 
 const DEFAULT_CONFIG: BaseGameConfig = {
   maxPlayers: 6,
@@ -18,12 +21,13 @@ const DEFAULT_CONFIG: BaseGameConfig = {
   timeLimit: 30,
 };
 
+/** Input when creating a room (name + optional limit overrides). */
 export type GameRoomCreateConfig = { name: string } & Partial<BaseGameConfig>;
 
 export interface GameRoomState {
   id: string;
   phase: GamePhase;
-  config: StudTableConfig;
+  config: GameConfig;
   players: { userId: string; username: string }[];
   game: {
     pot: number;
@@ -34,19 +38,17 @@ export interface GameRoomState {
 }
 
 export class GameRoom {
-  private readonly game: StudGame;
-  private readonly sockets = new Map<string, Socket>();
-  private readonly playerNames = new Map<string, string>();
+  private game: StudGame;
+  private sockets: Map<string, Socket> = new Map();
+  private playerNames: Map<string, string> = new Map();
 
-  readonly id: string;
-  readonly config: StudTableConfig;
+  public readonly config: GameConfig;
 
   constructor(
-    id: string,
+    public readonly id: string,
     input: GameRoomCreateConfig,
     private readonly io: Server
   ) {
-    this.id = id;
     this.config = {
       ...DEFAULT_CONFIG,
       ...input,
@@ -65,6 +67,7 @@ export class GameRoom {
     if (this.sockets.has(userId)) {
       throw new Error("Player already in room");
     }
+
     if (this.sockets.size >= this.config.maxPlayers) {
       throw new Error("Room is full");
     }
@@ -89,9 +92,8 @@ export class GameRoom {
     const socket = this.sockets.get(userId);
     if (!socket) return;
 
-    const username = this.playerNames.get(userId);
-
     this.sockets.delete(userId);
+    const username = this.playerNames.get(userId);
     this.playerNames.delete(userId);
 
     this.game.removePlayer(userId);
