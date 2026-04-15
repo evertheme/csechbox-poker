@@ -1,22 +1,24 @@
-import type { Card, Rank, Suit } from "../types/index.js";
+export type Suit = "hearts" | "diamonds" | "clubs" | "spades";
+export type Rank =
+  | "2"
+  | "3"
+  | "4"
+  | "5"
+  | "6"
+  | "7"
+  | "8"
+  | "9"
+  | "10"
+  | "J"
+  | "Q"
+  | "K"
+  | "A";
 
-const SUITS: Suit[] = ["hearts", "diamonds", "clubs", "spades"];
-
-const RANKS: Rank[] = [
-  "2",
-  "3",
-  "4",
-  "5",
-  "6",
-  "7",
-  "8",
-  "9",
-  "10",
-  "J",
-  "Q",
-  "K",
-  "A",
-];
+export interface Card {
+  suit: Suit;
+  rank: Rank;
+  faceUp: boolean;
+}
 
 export class Deck {
   private cards: Card[] = [];
@@ -25,18 +27,34 @@ export class Deck {
     this.reset();
   }
 
-  /** Build a full 52-card deck (all face-down). */
   reset(): void {
     this.cards = [];
-    for (const suit of SUITS) {
-      for (const rank of RANKS) {
+    const suits: Suit[] = ["hearts", "diamonds", "clubs", "spades"];
+    const ranks: Rank[] = [
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "J",
+      "Q",
+      "K",
+      "A",
+    ];
+
+    for (const suit of suits) {
+      for (const rank of ranks) {
         this.cards.push({ suit, rank, faceUp: false });
       }
     }
   }
 
-  /** Fisher–Yates shuffle (in place). */
   shuffle(): void {
+    // Fisher-Yates shuffle
     for (let i = this.cards.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       const a = this.cards[i];
@@ -47,18 +65,21 @@ export class Deck {
     }
   }
 
-  deal(faceUp = false): Card | undefined {
-    const c = this.cards.pop();
-    if (!c) return undefined;
-    return { ...c, faceUp };
+  deal(count = 1, faceUp = false): Card[] {
+    const dealt = this.cards.splice(0, count);
+    return dealt.map((card) => ({ ...card, faceUp }));
+  }
+
+  dealOne(faceUp = false): Card | null {
+    const card = this.cards.shift();
+    return card ? { ...card, faceUp } : null;
   }
 
   remaining(): number {
     return this.cards.length;
   }
 
-  /** Expose copy for tests / rigged deals (mutate carefully). */
-  getCards(): readonly Card[] {
-    return this.cards;
+  isEmpty(): boolean {
+    return this.cards.length === 0;
   }
 }

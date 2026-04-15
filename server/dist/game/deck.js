@@ -1,35 +1,34 @@
-const SUITS = ["hearts", "diamonds", "clubs", "spades"];
-const RANKS = [
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "10",
-    "J",
-    "Q",
-    "K",
-    "A",
-];
 export class Deck {
     cards = [];
     constructor() {
         this.reset();
     }
-    /** Build a full 52-card deck (all face-down). */
     reset() {
         this.cards = [];
-        for (const suit of SUITS) {
-            for (const rank of RANKS) {
+        const suits = ["hearts", "diamonds", "clubs", "spades"];
+        const ranks = [
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "10",
+            "J",
+            "Q",
+            "K",
+            "A",
+        ];
+        for (const suit of suits) {
+            for (const rank of ranks) {
                 this.cards.push({ suit, rank, faceUp: false });
             }
         }
     }
-    /** Fisher–Yates shuffle (in place). */
     shuffle() {
+        // Fisher-Yates shuffle
         for (let i = this.cards.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             const a = this.cards[i];
@@ -40,18 +39,19 @@ export class Deck {
             this.cards[j] = a;
         }
     }
-    deal(faceUp = false) {
-        const c = this.cards.pop();
-        if (!c)
-            return undefined;
-        return { ...c, faceUp };
+    deal(count = 1, faceUp = false) {
+        const dealt = this.cards.splice(0, count);
+        return dealt.map((card) => ({ ...card, faceUp }));
+    }
+    dealOne(faceUp = false) {
+        const card = this.cards.shift();
+        return card ? { ...card, faceUp } : null;
     }
     remaining() {
         return this.cards.length;
     }
-    /** Expose copy for tests / rigged deals (mutate carefully). */
-    getCards() {
-        return this.cards;
+    isEmpty() {
+        return this.cards.length === 0;
     }
 }
 //# sourceMappingURL=deck.js.map
