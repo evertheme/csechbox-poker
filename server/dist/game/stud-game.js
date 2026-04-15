@@ -24,19 +24,21 @@ const SUIT_ORDER = {
 export class StudGame {
     config;
     deck;
-    /** Best evaluated hand from the last `runShowdown` (winner not yet mapped to player id). */
-    lastShowdownBest = null;
     players = [];
     pot = 0;
-    /** Max chips put in this betting round (street) by any player */
-    streetCap = 0;
+    /** Amount to match on this betting street (max of players’ street bets). */
+    currentBet = 0;
     currentRound = "third-street";
     phase = "waiting";
     currentPlayerIndex = 0;
+    dealerPosition = 0;
+    lastShowdownBest = null;
+    lastShowdownWinnerId = null;
     constructor(config) {
         this.config = config;
         this.deck = new Deck();
     }
+    // ─── getters ─────────────────────────────────────────────────────────────
     getPhase() {
         return this.phase;
     }
@@ -46,9 +48,13 @@ export class StudGame {
     getPot() {
         return this.pot;
     }
-    /** Target amount each player must match on this street (max of per-player street bets). */
+    /** Table stake to call on the current street. */
+    getTableStake() {
+        return this.currentBet;
+    }
+    /** @deprecated alias — use `getTableStake()` */
     getStreetCap() {
-        return this.streetCap;
+        return this.currentBet;
     }
     getCurrentRound() {
         return this.currentRound;
@@ -56,9 +62,20 @@ export class StudGame {
     getCurrentPlayerIndex() {
         return this.currentPlayerIndex;
     }
+    getDealerPosition() {
+        return this.dealerPosition;
+    }
     getLastShowdownBest() {
         return this.lastShowdownBest;
     }
+    getLastShowdownWinnerId() {
+        return this.lastShowdownWinnerId;
+    }
+    /** Rank value 2–14 for a single card (door / kicker logic). */
+    getCardValue(card) {
+        return RANK_VALUE[card.rank];
+    }
+    // ─── seating ─────────────────────────────────────────────────────────────
     addPlayer(id, name, chips, position) {
         if (this.players.length >= this.config.maxPlayers) {
             throw new Error("Game is full");
@@ -84,29 +101,38 @@ export class StudGame {
     removePlayer(id) {
         this.players = this.players.filter((p) => p.id !== id);
     }
+    setDealerPosition(index) {
+        if (index >= 0 && index < this.players.length) {
+            this.dealerPosition = index;
+        }
+    }
+    // ─── hand lifecycle ───────────────────────────────────────────────────────
     startHand() {
         if (this.players.length < this.config.minPlayers) {
             throw new Error("Not enough players to start");
         }
         this.phase = "ante";
         this.pot = 0;
-        this.streetCap = 0;
+        this.currentBet = 0;
         this.currentRound = "third-street";
+        this.lastShowdownBest = null;
+        this.lastShowdownWinnerId = null;
         this.deck.reset();
         this.deck.shuffle();
-        for (const p of this.players) {
-            p.cards = [];
-            p.currentBet = 0;
-            p.totalBet = 0;
-            p.isFolded = false;
-            p.isAllIn = false;
-            p.isActive = true;
+        for (const player of this.players) {
+            player.cards = [];
+            player.currentBet = 0;
+            player.totalBet = 0;
+            player.isFolded = false;
+            player.isAllIn = false;
+            player.isActive = true;
         }
         this.collectAntes();
+        this.phase = "dealing";
         this.dealThirdStreet();
         this.phase = "betting";
         this.determineBringIn();
-        this.refreshStreetCap();
+        this.refreshTableStake();
     }
     collectAntes() {
         for (const player of this.players) {
@@ -124,31 +150,31 @@ export class StudGame {
             }
         }
     }
+    /** Everyone still in the pot receives third-street cards (incl. all-in who still play). */
+    dealThirdStreet() {
+        for (const player of this.players) {
+            if (player.isFolded)
+                continue;
+            player.cards.push(...this.deck.deal(2, false));
+            player.cards.push(...this.deck.deal(1, true));
+        }
+    }
     playersInHand() {
         return [...this.players]
             .filter((p) => !p.isFolded)
             .sort((a, b) => a.position - b.position);
     }
-    dealThirdStreet() {
-        const order = this.playersInHand();
-        for (const player of order) {
-            player.cards.push(...this.deck.deal(2, false));
-            player.cards.push(...this.deck.deal(1, true));
-        }
-    }
     getDoorCard(player) {
         const door = player.cards[2];
-        if (!door) {
+        if (!door)
             throw new Error("Missing door card");
-        }
         return door;
     }
-    doorCardSortKey(card) {
-        return [RANK_VALUE[card.rank], SUIT_ORDER[card.suit]];
-    }
     compareDoorCards(a, b) {
-        const [r1, s1] = this.doorCardSortKey(a);
-        const [r2, s2] = this.doorCardSortKey(b);
+        const r1 = RANK_VALUE[a.rank];
+        const s1 = SUIT_ORDER[a.suit];
+        const r2 = RANK_VALUE[b.rank];
+        const s2 = SUIT_ORDER[b.suit];
         if (r1 !== r2)
             return r1 - r2;
         return s1 - s2;
@@ -158,32 +184,44 @@ export class StudGame {
         if (eligible.length === 0) {
             throw new Error("No eligible players for bring-in");
         }
-        let lowest = eligible[0];
-        let lowestCard = this.getDoorCard(lowest);
-        for (const p of eligible.slice(1)) {
-            const c = this.getDoorCard(p);
-            if (this.compareDoorCards(c, lowestCard) < 0) {
-                lowest = p;
-                lowestCard = c;
+        let lowestPlayer = eligible[0];
+        let lowestCard = this.getDoorCard(lowestPlayer);
+        for (const player of eligible) {
+            if (player.isFolded || player.isAllIn)
+                continue;
+            const door = this.getDoorCard(player);
+            if (this.compareDoorCards(door, lowestCard) < 0) {
+                lowestCard = door;
+                lowestPlayer = player;
             }
         }
-        this.currentPlayerIndex = this.players.findIndex((p) => p.id === lowest.id);
-        const bring = Math.min(this.config.bringIn, lowest.chips);
-        lowest.chips -= bring;
-        lowest.currentBet = bring;
-        lowest.totalBet += bring;
+        this.currentPlayerIndex = this.players.findIndex((p) => p.id === lowestPlayer.id);
+        const bring = Math.min(this.config.bringIn, lowestPlayer.chips);
+        lowestPlayer.chips -= bring;
+        lowestPlayer.currentBet = bring;
+        lowestPlayer.totalBet += bring;
         this.pot += bring;
-        if (lowest.chips === 0)
-            lowest.isAllIn = true;
+        if (lowestPlayer.chips === 0)
+            lowestPlayer.isAllIn = true;
     }
-    refreshStreetCap() {
+    refreshTableStake() {
         const alive = this.playersInHand();
         if (alive.length === 0) {
-            this.streetCap = 0;
+            this.currentBet = 0;
             return;
         }
-        this.streetCap = Math.max(...alive.map((p) => p.currentBet));
+        this.currentBet = Math.max(...alive.map((p) => p.currentBet));
     }
+    /** Third & fourth use small bet; fifth+ use big bet (standard stud structure). */
+    betIncrement() {
+        if (this.currentRound === "fifth-street" ||
+            this.currentRound === "sixth-street" ||
+            this.currentRound === "seventh-street") {
+            return this.config.bigBet;
+        }
+        return this.config.smallBet;
+    }
+    // ─── player actions ──────────────────────────────────────────────────────
     playerAction(playerId, type, amount = 0) {
         const player = this.players.find((p) => p.id === playerId);
         if (!player || player.isFolded)
@@ -193,18 +231,19 @@ export class StudGame {
         const active = this.players[this.currentPlayerIndex];
         if (!active || active.id !== playerId)
             return;
+        const stake = this.currentBet;
         switch (type) {
             case "fold":
                 player.isFolded = true;
                 player.isActive = false;
                 break;
             case "check": {
-                if (player.currentBet < this.streetCap)
+                if (player.currentBet < stake)
                     return;
                 break;
             }
             case "call": {
-                const toCall = this.streetCap - player.currentBet;
+                const toCall = stake - player.currentBet;
                 const pay = Math.min(toCall, player.chips);
                 player.chips -= pay;
                 player.currentBet += pay;
@@ -216,9 +255,9 @@ export class StudGame {
             }
             case "bet":
             case "raise": {
-                const increment = amount > 0 ? amount : this.config.smallBet;
-                const toCall = this.streetCap - player.currentBet;
-                const totalDue = toCall + increment;
+                const inc = amount > 0 ? amount : this.betIncrement();
+                const toCall = stake - player.currentBet;
+                const totalDue = toCall + inc;
                 const pay = Math.min(totalDue, player.chips);
                 player.chips -= pay;
                 player.currentBet += pay;
@@ -240,7 +279,7 @@ export class StudGame {
             default:
                 return;
         }
-        this.refreshStreetCap();
+        this.refreshTableStake();
         this.nextActivePlayer();
         if (this.bettingComplete()) {
             this.endBettingRound();
@@ -250,9 +289,9 @@ export class StudGame {
         const alive = this.playersInHand();
         if (alive.length <= 1)
             return true;
-        this.refreshStreetCap();
-        const maxBet = this.streetCap;
-        return alive.every((p) => p.isAllIn || p.currentBet === maxBet);
+        this.refreshTableStake();
+        const cap = this.currentBet;
+        return alive.every((p) => p.isAllIn || p.currentBet === cap);
     }
     nextActivePlayer() {
         const n = this.players.length;
@@ -269,7 +308,7 @@ export class StudGame {
         for (const p of this.players) {
             p.currentBet = 0;
         }
-        this.streetCap = 0;
+        this.currentBet = 0;
         const order = [
             "third-street",
             "fourth-street",
@@ -292,7 +331,7 @@ export class StudGame {
         }
         this.phase = "betting";
         this.currentPlayerIndex = this.firstPlayerToAct();
-        this.refreshStreetCap();
+        this.refreshTableStake();
     }
     firstPlayerToAct() {
         const idx = this.players.findIndex((p) => !p.isFolded && !p.isAllIn);
@@ -308,20 +347,31 @@ export class StudGame {
     runShowdown() {
         const contenders = this.playersInHand().filter((p) => p.cards.length >= 5);
         let best = null;
+        let winnerId = null;
         for (const p of contenders) {
             try {
                 const h = HandEvaluator.evaluate(p.cards);
                 if (!best || h.value > best.value) {
                     best = h;
+                    winnerId = p.id;
                 }
             }
             catch {
-                /* skip incomplete */
+                /* incomplete */
             }
         }
         this.lastShowdownBest = best;
+        this.lastShowdownWinnerId = winnerId;
         this.phase = "complete";
+        this.rotateDealerAfterHand();
     }
+    /** Advance dealer button for the next hand. */
+    rotateDealerAfterHand() {
+        if (this.players.length === 0)
+            return;
+        this.dealerPosition = (this.dealerPosition + 1) % this.players.length;
+    }
+    /** Manual street advance (testing / simple orchestration). */
     advanceStreet() {
         const order = [
             "third-street",

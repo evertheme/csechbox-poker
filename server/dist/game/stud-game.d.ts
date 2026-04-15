@@ -1,11 +1,11 @@
-import type { BettingRound, GameConfig as TableGameConfig, GamePhase } from "../types/index.js";
 import type { Card } from "./deck.js";
 import { type HandResult } from "./hand-evaluator.js";
+import type { BettingRound, GameConfig as BaseGameConfig, GamePhase } from "../types/index.js";
 export type { BettingRound, GamePhase };
-/** Table config: base limits + optional display name */
-export type StudGameConfig = TableGameConfig & {
-    name?: string;
-};
+/** Limits + table display name (required when constructing from room UI). */
+export interface GameConfig extends BaseGameConfig {
+    name: string;
+}
 export interface GamePlayer {
     id: string;
     name: string;
@@ -20,37 +20,47 @@ export interface GamePlayer {
 }
 export type PlayerActionType = "fold" | "check" | "call" | "bet" | "raise" | "all-in";
 export declare class StudGame {
-    readonly config: StudGameConfig;
+    readonly config: GameConfig;
     private deck;
-    /** Best evaluated hand from the last `runShowdown` (winner not yet mapped to player id). */
-    private lastShowdownBest;
     private players;
     private pot;
-    /** Max chips put in this betting round (street) by any player */
-    private streetCap;
+    /** Amount to match on this betting street (max of players’ street bets). */
+    private currentBet;
     private currentRound;
     private phase;
     private currentPlayerIndex;
-    constructor(config: StudGameConfig);
+    private dealerPosition;
+    private lastShowdownBest;
+    private lastShowdownWinnerId;
+    constructor(config: GameConfig);
     getPhase(): GamePhase;
     getPlayers(): readonly GamePlayer[];
     getPot(): number;
-    /** Target amount each player must match on this street (max of per-player street bets). */
+    /** Table stake to call on the current street. */
+    getTableStake(): number;
+    /** @deprecated alias — use `getTableStake()` */
     getStreetCap(): number;
     getCurrentRound(): BettingRound;
     getCurrentPlayerIndex(): number;
+    getDealerPosition(): number;
     getLastShowdownBest(): HandResult | null;
+    getLastShowdownWinnerId(): string | null;
+    /** Rank value 2–14 for a single card (door / kicker logic). */
+    getCardValue(card: Card): number;
     addPlayer(id: string, name: string, chips: number, position: number): void;
     removePlayer(id: string): void;
+    setDealerPosition(index: number): void;
     startHand(): void;
     private collectAntes;
-    private playersInHand;
+    /** Everyone still in the pot receives third-street cards (incl. all-in who still play). */
     private dealThirdStreet;
+    private playersInHand;
     private getDoorCard;
-    private doorCardSortKey;
     private compareDoorCards;
     private determineBringIn;
-    private refreshStreetCap;
+    private refreshTableStake;
+    /** Third & fourth use small bet; fifth+ use big bet (standard stud structure). */
+    private betIncrement;
     playerAction(playerId: string, type: PlayerActionType, amount?: number): void;
     private bettingComplete;
     private nextActivePlayer;
@@ -58,6 +68,9 @@ export declare class StudGame {
     private firstPlayerToAct;
     private dealStreet;
     private runShowdown;
+    /** Advance dealer button for the next hand. */
+    private rotateDealerAfterHand;
+    /** Manual street advance (testing / simple orchestration). */
     advanceStreet(): void;
 }
 //# sourceMappingURL=stud-game.d.ts.map
