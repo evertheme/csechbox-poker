@@ -24,6 +24,7 @@ import { CreateRoomDialog } from "@/components/lobby/create-room-dialog";
 export default function LobbyPage() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
+  const authLoading = useAuthStore((state) => state.isLoading);
   const { socket, isConnected, connect } = useSocket();
   const { rooms, setRooms, setIsCreatingRoom } = useLobbyStore();
   const [isLoading, setIsLoading] = useState(true);
@@ -58,10 +59,11 @@ export default function LobbyPage() {
   }, [user, isConnected, socket, setRooms]);
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) {
       router.replace("/login");
     }
-  }, [user, router]);
+  }, [user, authLoading, router]);
 
   const handleJoinRoom = (roomId: string) => {
     const s = socket ?? socketClient.getSocket();
@@ -95,6 +97,14 @@ export default function LobbyPage() {
   const handleCreateRoom = () => {
     setIsCreatingRoom(true);
   };
+
+  if (authLoading) {
+    return (
+      <div className="felt-texture flex min-h-screen items-center justify-center p-4">
+        <p className="text-lg text-white">Loading session…</p>
+      </div>
+    );
+  }
 
   if (!user) {
     return null;

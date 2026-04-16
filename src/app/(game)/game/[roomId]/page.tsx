@@ -24,15 +24,17 @@ export default function GamePage({ params }: GamePageProps) {
   const router = useRouter();
   const { socket, isConnected } = useSocket();
   const user = useAuthStore((state) => state.user);
+  const authLoading = useAuthStore((state) => state.isLoading);
   const gameState = useGameStore((s) => s.gameState);
   const lastError = useGameStore((s) => s.lastError);
   const prevErr = useRef<string | null>(null);
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) {
       router.replace("/login");
     }
-  }, [user, router]);
+  }, [user, authLoading, router]);
 
   useEffect(() => {
     if (lastError && lastError !== prevErr.current) {
@@ -52,6 +54,15 @@ export default function GamePage({ params }: GamePageProps) {
     const s = socket ?? socketClient.getSocket();
     s?.emit("start-game", roomId);
   };
+
+  if (authLoading) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-2 px-4">
+        <p className="text-lg text-white">Loading session…</p>
+        <p className="text-sm text-zinc-400">Restoring your account</p>
+      </div>
+    );
+  }
 
   if (!user) {
     return null;
