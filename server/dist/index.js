@@ -14,7 +14,10 @@ app.use(cors({
     origin: clientUrl,
     credentials: true,
 }));
-// Health check endpoint
+// Root + health: Railway and other platforms often probe `/` by default; `/health` is explicit.
+app.get("/", (_req, res) => {
+    res.json({ service: "poker-stud-server", status: "ok" });
+});
 app.get("/health", (_req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
@@ -43,7 +46,7 @@ io.on("connection", (socket) => {
 });
 // Start server
 const PORT = Number(process.env.PORT ?? 3001);
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📡 Socket.IO ready for connections`);
 });
