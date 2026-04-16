@@ -13,7 +13,7 @@ import { socketClient } from "@/lib/socket";
 import { supabase } from "@/lib/supabase/client";
 import { useAuthStore } from "@/store/auth-store";
 import { useGameStore } from "@/store/game-store";
-import { toRoomInfo, useLobbyStore } from "@/store/lobby-store";
+import { toTableInfo, useLobbyStore } from "@/store/lobby-store";
 import type { PokerSocket } from "@/lib/socket";
 
 interface SocketContextValue {
@@ -36,7 +36,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   const [isConnected, setIsConnected] = useState(false);
   const { user } = useAuthStore();
   const { setGameState, addPlayer, removePlayer, applyAction, setError } = useGameStore();
-  const { setRooms, addRoom, updateRoom, removeRoom } = useLobbyStore();
+  const { setTables, addTable, updateTable, removeTable } = useLobbyStore();
 
   const disconnect = useCallback(() => {
     socketClient.disconnect();
@@ -96,10 +96,10 @@ export function SocketProvider({ children }: { children: ReactNode }) {
         applyAction(action.playerId, action.type, action.amount)
       );
       s.on("game:error", (err) => setError(err.message));
-      s.on("room:list", (rooms) => setRooms(rooms.map(toRoomInfo)));
-      s.on("room:created", (room) => addRoom(toRoomInfo(room)));
-      s.on("room:updated", (room) => updateRoom(room.id, toRoomInfo(room)));
-      s.on("room:deleted", removeRoom);
+      s.on("table:list", (tables) => setTables(tables.map(toTableInfo)));
+      s.on("table:created", (table) => addTable(toTableInfo(table)));
+      s.on("table:updated", (table) => updateTable(table.id, toTableInfo(table)));
+      s.on("table:deleted", removeTable);
 
       if (s.connected) setIsConnected(true);
     })();
@@ -119,10 +119,10 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     removePlayer,
     applyAction,
     setError,
-    setRooms,
-    addRoom,
-    updateRoom,
-    removeRoom,
+    setTables,
+    addTable,
+    updateTable,
+    removeTable,
   ]);
 
   return (

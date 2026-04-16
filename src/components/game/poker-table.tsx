@@ -39,11 +39,11 @@ export function PokerTable({
   showBettingControls = true,
 }: PokerTableProps) {
   const players = useGameStore((s) => s.players);
-  const { myPlayer, isMyTurn, isConnected, sendAction, joinRoom, leaveRoom } = useGame(gameId);
+  const { myPlayer, isMyTurn, isConnected, sendAction, joinTable, leaveTable } = useGame(gameId);
 
   useEffect(() => {
-    joinRoom();
-    return () => leaveRoom();
+    joinTable();
+    return () => leaveTable();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameId]);
 

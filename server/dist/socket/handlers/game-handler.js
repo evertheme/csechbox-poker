@@ -1,19 +1,19 @@
-import { rooms } from "../../game/live-room-store.js";
+import { tables } from "../../game/table-registry.js";
 import { createLogger } from "../../utils/logger.js";
 const log = createLogger("game-handler");
 function errMessage(error) {
     return error instanceof Error ? error.message : String(error);
 }
 export function registerGameHandlers(io, socket) {
-    socket.on("start-game", (roomId) => {
+    socket.on("start-game", (tableId) => {
         try {
-            const room = rooms.get(roomId);
-            if (!room) {
-                socket.emit("game:error", { message: "Room not found" });
+            const table = tables.get(tableId);
+            if (!table) {
+                socket.emit("game:error", { message: "Table not found" });
                 return;
             }
-            room.startGame();
-            log.debug("start-game", { roomId });
+            table.startGame();
+            log.debug("start-game", { tableId });
         }
         catch (error) {
             socket.emit("game:error", { message: errMessage(error) });
@@ -21,55 +21,55 @@ export function registerGameHandlers(io, socket) {
     });
     socket.on("player-action", (action) => {
         try {
-            const { roomId, type, amount } = action;
-            const room = rooms.get(roomId);
-            if (!room) {
-                socket.emit("game:error", { message: "Room not found" });
+            const { tableId, type, amount } = action;
+            const table = tables.get(tableId);
+            if (!table) {
+                socket.emit("game:error", { message: "Table not found" });
                 return;
             }
             const userId = socket.data.userId ?? socket.id;
-            room.handlePlayerAction(userId, {
+            table.handlePlayerAction(userId, {
                 type: type,
                 amount,
             });
-            log.debug("player-action", { roomId, type, amount });
+            log.debug("player-action", { tableId, type, amount });
         }
         catch (error) {
             socket.emit("game:error", { message: errMessage(error) });
         }
     });
-    socket.on("sit-down", (roomId, _position, callback) => {
+    socket.on("sit-down", (tableId, _position, callback) => {
         if (typeof callback !== "function")
             return;
         try {
-            const room = rooms.get(roomId);
-            if (!room) {
-                callback({ success: false, error: "Room not found" });
+            const table = tables.get(tableId);
+            if (!table) {
+                callback({ success: false, error: "Table not found" });
                 return;
             }
             callback({ success: true });
-            log.debug("sit-down", { roomId, position: _position });
+            log.debug("sit-down", { tableId, position: _position });
         }
         catch (error) {
             callback({ success: false, error: errMessage(error) });
         }
     });
-    socket.on("stand-up", (roomId) => {
+    socket.on("stand-up", (tableId) => {
         try {
-            if (!rooms.has(roomId)) {
-                socket.emit("game:error", { message: "Room not found" });
+            if (!tables.has(tableId)) {
+                socket.emit("game:error", { message: "Table not found" });
                 return;
             }
-            console.log(`🪑 Player stood up in room: ${roomId}`);
-            log.debug("stand-up", { roomId });
+            console.log(`🪑 Player stood up at table: ${tableId}`);
+            log.debug("stand-up", { tableId });
         }
         catch (error) {
             socket.emit("game:error", { message: errMessage(error) });
         }
     });
-    socket.on("send-message", (roomId, message) => {
+    socket.on("send-message", (tableId, message) => {
         const username = socket.data.username ?? "Anonymous";
-        io.to(roomId).emit("chat-message", {
+        io.to(tableId).emit("chat-message", {
             playerId: socket.data.userId ?? socket.id,
             username,
             text: message,

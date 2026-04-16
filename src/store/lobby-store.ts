@@ -1,7 +1,7 @@
 import { create } from "zustand";
-import type { GameConfig, GamePhase, GameRoom } from "@/types/game";
+import type { GameConfig, GamePhase, LobbyTable } from "@/types/game";
 
-export interface RoomInfo {
+export interface TableInfo {
   id: string;
   name: string;
   players: number;
@@ -18,71 +18,71 @@ export interface RoomInfo {
 }
 
 interface LobbyStore {
-  rooms: RoomInfo[];
-  selectedRoom: RoomInfo | null;
-  isCreatingRoom: boolean;
+  tables: TableInfo[];
+  selectedTable: TableInfo | null;
+  isCreateGameOpen: boolean;
   isLoading: boolean;
   searchQuery: string;
 
-  setRooms: (rooms: RoomInfo[]) => void;
-  addRoom: (room: RoomInfo) => void;
-  removeRoom: (roomId: string) => void;
-  updateRoom: (roomId: string, updates: Partial<RoomInfo>) => void;
-  setSelectedRoom: (room: RoomInfo | null) => void;
-  setIsCreatingRoom: (isCreating: boolean) => void;
+  setTables: (tables: TableInfo[]) => void;
+  addTable: (table: TableInfo) => void;
+  removeTable: (tableId: string) => void;
+  updateTable: (tableId: string, updates: Partial<TableInfo>) => void;
+  setSelectedTable: (table: TableInfo | null) => void;
+  setCreateGameOpen: (open: boolean) => void;
   setLoading: (loading: boolean) => void;
   setSearchQuery: (query: string) => void;
 }
 
 export const useLobbyStore = create<LobbyStore>((set) => ({
-  rooms: [],
-  selectedRoom: null,
-  isCreatingRoom: false,
+  tables: [],
+  selectedTable: null,
+  isCreateGameOpen: false,
   isLoading: false,
   searchQuery: "",
 
-  setRooms: (rooms) => set({ rooms }),
+  setTables: (tables) => set({ tables }),
 
-  addRoom: (room) =>
+  addTable: (table) =>
     set((state) => ({
-      rooms: [...state.rooms, room],
+      tables: [...state.tables, table],
     })),
 
-  removeRoom: (roomId) =>
+  removeTable: (tableId) =>
     set((state) => ({
-      rooms: state.rooms.filter((r) => r.id !== roomId),
-      selectedRoom:
-        state.selectedRoom?.id === roomId ? null : state.selectedRoom,
+      tables: state.tables.filter((t) => t.id !== tableId),
+      selectedTable:
+        state.selectedTable?.id === tableId ? null : state.selectedTable,
     })),
 
-  updateRoom: (roomId, updates) =>
+  updateTable: (tableId, updates) =>
     set((state) => ({
-      rooms: state.rooms.map((r) =>
-        r.id === roomId ? { ...r, ...updates } : r,
+      tables: state.tables.map((t) =>
+        t.id === tableId ? { ...t, ...updates } : t,
       ),
-      selectedRoom:
-        state.selectedRoom?.id === roomId && state.selectedRoom
-          ? { ...state.selectedRoom, ...updates }
-          : state.selectedRoom,
+      selectedTable:
+        state.selectedTable?.id === tableId && state.selectedTable
+          ? { ...state.selectedTable, ...updates }
+          : state.selectedTable,
     })),
 
-  setSelectedRoom: (room) => set({ selectedRoom: room }),
+  setSelectedTable: (table) => set({ selectedTable: table }),
 
-  setIsCreatingRoom: (isCreating) => set({ isCreatingRoom: isCreating }),
+  setCreateGameOpen: (open) => set({ isCreateGameOpen: open }),
 
   setLoading: (loading) => set({ isLoading: loading }),
 
   setSearchQuery: (query) => set({ searchQuery: query }),
 }));
 
-/** Map server `get-rooms` list row into `RoomInfo`. */
-export function fromGetRoomsRow(row: {
+/** Map server `list-tables` row into `TableInfo`. */
+export function fromListedTableRow(row: {
   id: string;
   name: string;
   players: number;
   maxPlayers: number;
   config: GameConfig;
-}): RoomInfo {
+}): TableInfo {
   return {
     id: row.id,
     name: row.name,
@@ -98,21 +98,21 @@ export function fromGetRoomsRow(row: {
   };
 }
 
-/** Map server `GameRoom` payloads into lobby `RoomInfo`. */
-export function toRoomInfo(room: GameRoom): RoomInfo {
+/** Map server broadcast `LobbyTable` payloads into lobby `TableInfo`. */
+export function toTableInfo(table: LobbyTable): TableInfo {
   return {
-    id: room.id,
-    name: room.name,
-    players: room.playerCount,
-    maxPlayers: room.config.maxPlayers,
+    id: table.id,
+    name: table.name,
+    players: table.playerCount,
+    maxPlayers: table.config.maxPlayers,
     config: {
-      ante: room.config.ante,
-      smallBet: room.config.smallBet,
-      bigBet: room.config.bigBet,
-      buyIn: room.config.buyIn,
-      bringIn: room.config.bringIn,
+      ante: table.config.ante,
+      smallBet: table.config.smallBet,
+      bigBet: table.config.bigBet,
+      buyIn: table.config.buyIn,
+      bringIn: table.config.bringIn,
     },
-    phase: room.phase,
-    isPrivate: room.isPrivate,
+    phase: table.phase,
+    isPrivate: table.isPrivate,
   };
 }

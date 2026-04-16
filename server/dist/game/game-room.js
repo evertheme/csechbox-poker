@@ -138,7 +138,7 @@ export class GameRoom {
     }
     broadcastGameState() {
         const state = this.getState();
-        this.io.to(this.id).emit("room:updated", state);
+        this.io.to(this.id).emit("table:updated", state);
         this.io.to(this.id).emit("game-state", state);
     }
 }

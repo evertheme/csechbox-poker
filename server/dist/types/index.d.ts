@@ -38,8 +38,8 @@ export interface GameState {
     createdAt: Date;
     lastAction: GameAction | null;
 }
-/** Lobby-facing room summary (DTO — not the runtime `GameRoom` class). */
-export interface LobbyRoom {
+/** Lobby-facing table summary (DTO — not the runtime `GameRoom` class). */
+export interface LobbyTable {
     id: string;
     name: string;
     hostId: string;
@@ -61,8 +61,8 @@ export interface SocketData {
     userId?: string;
     username?: string;
 }
-/** Payload for creating a room (full table config). */
-export interface CreateRoomData {
+/** Payload for creating a table (full table config). */
+export interface CreateTableData {
     name: string;
     maxPlayers: number;
     minPlayers: number;
@@ -73,16 +73,16 @@ export interface CreateRoomData {
     buyIn: number;
     timeLimit: number;
 }
-/** Ack payload for `join-room`. */
-export interface JoinRoomResponse {
+/** Ack payload for `join-table`. */
+export interface JoinTableResponse {
     success: boolean;
-    room?: unknown;
+    table?: unknown;
     error?: string;
     message?: string;
 }
 /** Client → server `player-action` body. */
 export interface PlayerActionData {
-    roomId: string;
+    tableId: string;
     type: "fold" | "call" | "raise" | "check" | "bet" | "all-in";
     amount?: number;
 }

@@ -27,7 +27,7 @@ export interface GamePlayer {
 }
 
 export interface GameConfig {
-  /** Table display name when stored on room config (server-dependent). */
+  /** Table display name from host when creating a table (server-dependent). */
   name?: string;
   maxPlayers: number;
   minPlayers: number;
@@ -95,8 +95,8 @@ export interface GameState {
   lastAction: GameAction | null;
 }
 
-/** Lobby-facing room summary (subset of full game state) */
-export interface GameRoom {
+/** Lobby / broadcast summary for an open table (subset of full game state). */
+export interface LobbyTable {
   id: string;
   name: string;
   hostId: string;

@@ -6,8 +6,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 # Project Conventions
 
+- Game server: active tables are registered in `server/src/game/table-registry.ts`; socket handlers for create/list/join/leave are in `server/src/socket/handlers/table-handler.ts` (events use `*table*` names, e.g. `create-table`, `list-tables`).
 - Use Zustand for all global state — no React Context for shared state
-- All components go in `app/components/`, colocated with their page if page-specific
+- Shared UI lives in `src/components/`; route-specific UI under `src/app/` as usual for Next.js
 - Use `clsx` + `tailwind-merge` via a `cn()` utility for className merging
 - Form validation uses Zod schemas with react-hook-form + @hookform/resolvers
 - Use Supabase for auth and database — never roll your own auth

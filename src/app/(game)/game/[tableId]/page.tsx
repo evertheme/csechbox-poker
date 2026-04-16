@@ -16,11 +16,11 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
 interface GamePageProps {
-  params: Promise<{ roomId: string }>;
+  params: Promise<{ tableId: string }>;
 }
 
 export default function GamePage({ params }: GamePageProps) {
-  const { roomId } = use(params);
+  const { tableId } = use(params);
   const router = useRouter();
   const { socket, isConnected } = useSocket();
   const user = useAuthStore((state) => state.user);
@@ -44,15 +44,15 @@ export default function GamePage({ params }: GamePageProps) {
     if (!lastError) prevErr.current = null;
   }, [lastError]);
 
-  const handleLeaveRoom = () => {
+  const handleLeaveTable = () => {
     const s = socket ?? socketClient.getSocket();
-    s?.emit("leave-room", roomId);
+    s?.emit("leave-table", tableId);
     router.push("/lobby");
   };
 
   const handleStartGame = () => {
     const s = socket ?? socketClient.getSocket();
-    s?.emit("start-game", roomId);
+    s?.emit("start-game", tableId);
   };
 
   if (authLoading) {
@@ -84,7 +84,7 @@ export default function GamePage({ params }: GamePageProps) {
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleLeaveRoom}
+            onClick={handleLeaveTable}
             className="text-white hover:bg-white/10 hover:text-white"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -92,8 +92,8 @@ export default function GamePage({ params }: GamePageProps) {
           </Button>
 
           <div className="text-center text-white">
-            <p className="text-sm text-white/60">Room ID</p>
-            <p className="font-mono text-sm font-bold">{roomId}</p>
+            <p className="text-sm text-white/60">Table ID</p>
+            <p className="font-mono text-sm font-bold">{tableId}</p>
           </div>
 
           {gameState?.phase === "waiting" && (
@@ -112,20 +112,20 @@ export default function GamePage({ params }: GamePageProps) {
 
         <div className="flex flex-1 flex-col gap-4">
           <PokerTable
-            gameId={roomId}
+            gameId={tableId}
             gameState={gameState}
             currentUserId={user.id}
             showBettingControls={false}
           />
           <ActionPanel
-            roomId={roomId}
+            tableId={tableId}
             gameState={gameState}
             currentUserId={user.id}
           />
         </div>
 
         <div className="hidden lg:block lg:w-64">
-          <ChatPanel roomId={roomId} />
+          <ChatPanel tableId={tableId} />
         </div>
       </div>
 
@@ -135,7 +135,7 @@ export default function GamePage({ params }: GamePageProps) {
           <PlayerList />
         </div>
         <div className="mt-4">
-          <ChatPanel roomId={roomId} />
+          <ChatPanel tableId={tableId} />
         </div>
       </div>
     </div>

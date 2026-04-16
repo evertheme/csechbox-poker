@@ -3,19 +3,19 @@
 import { useEffect } from "react";
 import { useLobbyStore } from "@/store/lobby-store";
 import { useSocket } from "@/hooks/use-socket";
-import { RoomCard } from "./room-card";
+import { TableCard } from "./table-card";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function RoomList() {
+export function TableList() {
   const { socket } = useSocket();
-  const { rooms, isLoading, searchQuery } = useLobbyStore();
+  const { tables, isLoading, searchQuery } = useLobbyStore();
 
   useEffect(() => {
-    if (socket?.connected) socket.emit("room:list");
+    if (socket?.connected) socket.emit("table:list");
   }, [socket]);
 
-  const filtered = rooms.filter((r) =>
-    r.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filtered = tables.filter((t) =>
+    t.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   if (isLoading) {
@@ -32,15 +32,15 @@ export function RoomList() {
     return (
       <div className="flex flex-col items-center justify-center gap-2 py-16 text-zinc-500">
         <span className="text-4xl">🃏</span>
-        <p className="text-sm">No rooms found. Create one to get started!</p>
+        <p className="text-sm">No tables found. Create a game to get started!</p>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col gap-3">
-      {filtered.map((room) => (
-        <RoomCard key={room.id} room={room} />
+      {filtered.map((table) => (
+        <TableCard key={table.id} table={table} />
       ))}
     </div>
   );

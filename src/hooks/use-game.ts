@@ -30,18 +30,18 @@ export function useGame(gameId: string) {
 
   function sendAction(action: PlayerAction, amount?: number) {
     socket?.emit("player-action", {
-      roomId: gameId,
+      tableId: gameId,
       type: action,
       amount,
     });
   }
 
-  function joinRoom() {
-    socket?.emit("join-room", gameId, () => {});
+  function joinTable() {
+    socket?.emit("join-table", gameId, () => {});
   }
 
-  function leaveRoom() {
-    socket?.emit("leave-room", gameId);
+  function leaveTable() {
+    socket?.emit("leave-table", gameId);
   }
 
   return {
@@ -56,7 +56,7 @@ export function useGame(gameId: string) {
     setSelectedAction,
     setRaiseAmount,
     sendAction,
-    joinRoom,
-    leaveRoom,
+    joinTable,
+    leaveTable,
   };
 }

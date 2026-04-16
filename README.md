@@ -21,7 +21,18 @@ npm install
 npm run dev
 ```
 
-Copy environment variables from `.env.example` (root) and `server/.env.example`; point `NEXT_PUBLIC_SOCKET_URL` at your local server (default `http://localhost:3001`). The server reads **`CLIENT_URL`** (not `CLIENT_ORIGIN`) for CORS—set it to your app origin, e.g. `http://localhost:3000`.
+Copy environment variables from `.env.example` (root) and `server/.env.example`; point `NEXT_PUBLIC_SOCKET_URL` at your local server (default `http://localhost:3001`). The server reads **`CLIENT_URL`** for CORS—set it to your app origin, e.g. `http://localhost:3000`.
+
+### Game server layout
+
+| Path | Role |
+|------|------|
+| `server/src/game/table-registry.ts` | In-memory `tables` map (`Map<string, GameRoom>`) for every open table |
+| `server/src/game/game-room.ts` | `GameRoom` class — runtime state for a single table |
+| `server/src/socket/handlers/table-handler.ts` | Socket handlers: `create-table`, `list-tables`, `join-table`, `leave-table` |
+| `server/src/socket/handlers/game-handler.ts` | Gameplay: `start-game`, `player-action`, `send-message`, etc. |
+
+Lobby-related Socket.IO events use **table** names (not `*room*`): for example `create-table`, `list-tables`, `join-table`, `leave-table`, and server→client events `table:list`, `table:created`, `table:updated`, `table:deleted`. The Next.js app under `src/` uses the same naming in types and the lobby store.
 
 ## Deployment overview
 
@@ -84,7 +95,7 @@ Railway will assign a public HTTPS URL; put that origin (no path) into Vercel’
 
 ### Health check
 
-The server exposes `GET /health` for uptime checks if you enable them in Railway.
+The server exposes `GET /` and `GET /health` for uptime checks if you enable them in Railway (configure the healthcheck path in Railway to `/health` or `/`).
 
 ---
 

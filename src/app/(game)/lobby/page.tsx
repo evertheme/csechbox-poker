@@ -16,17 +16,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useSocket } from "@/hooks/use-socket";
 import { socketClient } from "@/lib/socket";
 import { supabase } from "@/lib/supabase/client";
-import { fromGetRoomsRow, useLobbyStore } from "@/store/lobby-store";
+import { fromListedTableRow, useLobbyStore } from "@/store/lobby-store";
 import { useAuthStore } from "@/store/auth-store";
 import { Users, Plus, DollarSign, TrendingUp } from "lucide-react";
-import { CreateRoomDialog } from "@/components/lobby/create-room-dialog";
+import { CreateTableDialog } from "@/components/lobby/create-table-dialog";
 
 export default function LobbyPage() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const authLoading = useAuthStore((state) => state.isLoading);
   const { socket, isConnected, connect } = useSocket();
-  const { rooms, setRooms, setIsCreatingRoom } = useLobbyStore();
+  const { tables, setTables, setCreateGameOpen } = useLobbyStore();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -50,13 +50,13 @@ export default function LobbyPage() {
     if (!s?.connected) return;
 
     setIsLoading(true);
-    s.emit("get-rooms", (response) => {
+    s.emit("list-tables", (response) => {
       setIsLoading(false);
       if (!response) return;
-      if (!response.success || !Array.isArray(response.rooms)) return;
-      setRooms(response.rooms.map(fromGetRoomsRow));
+      if (!response.success || !Array.isArray(response.tables)) return;
+      setTables(response.tables.map(fromListedTableRow));
     });
-  }, [user, isConnected, socket, setRooms]);
+  }, [user, isConnected, socket, setTables]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -65,7 +65,7 @@ export default function LobbyPage() {
     }
   }, [user, authLoading, router]);
 
-  const handleJoinRoom = (roomId: string) => {
+  const handleJoinTable = (tableId: string) => {
     const s = socket ?? socketClient.getSocket();
     if (!s?.connected) {
       toast.error("Connection error", {
@@ -74,7 +74,7 @@ export default function LobbyPage() {
       return;
     }
 
-    s.emit("join-room", roomId, (response) => {
+    s.emit("join-table", tableId, (response) => {
       if (!response) {
         toast.error("Failed to join", {
           description: "No response from server",
@@ -82,10 +82,10 @@ export default function LobbyPage() {
         return;
       }
       if (response.success) {
-        toast.success("Joined room", {
+        toast.success("Joined table", {
           description: "Entering game…",
         });
-        router.push(`/game/${roomId}`);
+        router.push(`/game/${tableId}`);
       } else {
         toast.error("Failed to join", {
           description: response.error,
@@ -94,8 +94,8 @@ export default function LobbyPage() {
     });
   };
 
-  const handleCreateRoom = () => {
-    setIsCreatingRoom(true);
+  const handleCreateGame = () => {
+    setCreateGameOpen(true);
   };
 
   if (authLoading) {
@@ -120,9 +120,9 @@ export default function LobbyPage() {
               {isConnected ? "🟢 Connected" : "🔴 Disconnected"}
             </p>
           </div>
-          <Button size="lg" onClick={handleCreateRoom} className="gap-2">
+          <Button size="lg" onClick={handleCreateGame} className="gap-2">
             <Plus className="h-5 w-5" />
-            Create Room
+            Create game
           </Button>
         </div>
 
@@ -143,7 +143,7 @@ export default function LobbyPage() {
 
         <div>
           <h2 className="mb-4 text-2xl font-bold text-white">
-            Available rooms ({rooms.length})
+            Active tables ({tables.length})
           </h2>
 
           {isLoading ? (
@@ -160,49 +160,49 @@ export default function LobbyPage() {
                 </Card>
               ))}
             </div>
-          ) : rooms.length === 0 ? (
+          ) : tables.length === 0 ? (
             <Card className="border-zinc-800 bg-zinc-900/90">
               <CardContent className="flex flex-col items-center justify-center p-12">
-                <p className="mb-4 text-xl text-muted-foreground">No active rooms</p>
-                <Button variant="poker" onClick={handleCreateRoom}>
-                  Create the first room
-                </Button>
+                <p className="text-xl text-muted-foreground">No active games</p>
+                <p className="mt-2 max-w-md text-center text-sm text-zinc-500">
+                  Use <span className="text-zinc-300">Create game</span> above to host a table.
+                </p>
               </CardContent>
             </Card>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {rooms.map((room) => (
+              {tables.map((table) => (
                 <Card
-                  key={room.id}
+                  key={table.id}
                   className="border-zinc-800 bg-zinc-900/90 transition-shadow hover:shadow-lg"
                 >
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between gap-2 text-white">
-                      <span className="truncate">{room.name}</span>
+                      <span className="truncate">{table.name}</span>
                       <Badge
                         variant={
-                          room.players >= room.maxPlayers ? "destructive" : "default"
+                          table.players >= table.maxPlayers ? "destructive" : "default"
                         }
                       >
-                        {room.players}/{room.maxPlayers}
+                        {table.players}/{table.maxPlayers}
                       </Badge>
                     </CardTitle>
-                    <CardDescription>Room ID: {room.id}</CardDescription>
+                    <CardDescription>Table ID: {table.id}</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-2 text-sm text-zinc-300">
                       <div className="flex items-center gap-2">
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
-                        <span>Ante: ${room.config.ante}</span>
+                        <span>Ante: ${table.config.ante}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                        <span>Buy-in: ${room.config.buyIn}</span>
+                        <span>Buy-in: ${table.config.buyIn}</span>
                       </div>
                       <div className="col-span-2 flex items-center gap-2">
                         <Users className="h-4 w-4 text-muted-foreground" />
                         <span>
-                          {room.players} {room.players === 1 ? "player" : "players"}
+                          {table.players} {table.players === 1 ? "player" : "players"}
                         </span>
                       </div>
                     </div>
@@ -210,10 +210,10 @@ export default function LobbyPage() {
                     <Button
                       variant="poker"
                       className="w-full"
-                      onClick={() => handleJoinRoom(room.id)}
-                      disabled={room.players >= room.maxPlayers}
+                      onClick={() => handleJoinTable(table.id)}
+                      disabled={table.players >= table.maxPlayers}
                     >
-                      {room.players >= room.maxPlayers ? "Full" : "Join room"}
+                      {table.players >= table.maxPlayers ? "Full" : "Join table"}
                     </Button>
                   </CardContent>
                 </Card>
@@ -223,7 +223,7 @@ export default function LobbyPage() {
         </div>
       </div>
 
-      <CreateRoomDialog />
+      <CreateTableDialog />
     </div>
   );
 }

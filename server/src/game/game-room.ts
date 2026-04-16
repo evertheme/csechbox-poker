@@ -198,7 +198,7 @@ export class GameRoom {
 
   private broadcastGameState(): void {
     const state = this.getState();
-    this.io.to(this.id).emit("room:updated", state as never);
+    this.io.to(this.id).emit("table:updated", state as never);
     this.io.to(this.id).emit("game-state", state as never);
   }
 }

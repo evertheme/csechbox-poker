@@ -12,12 +12,12 @@ import type { PlayerAction } from "@/types/game";
 import { cn, formatChips } from "@/lib/utils";
 
 export interface ActionPanelProps {
-  roomId: string;
+  tableId: string;
   gameState: GameState | null;
   currentUserId: string;
 }
 
-export function ActionPanel({ roomId, gameState, currentUserId }: ActionPanelProps) {
+export function ActionPanel({ tableId, gameState, currentUserId }: ActionPanelProps) {
   const { socket } = useSocket();
   const players = useGameStore((s) => s.players);
   const [raiseAmount, setRaiseAmount] = useState(0);
@@ -62,7 +62,7 @@ export function ActionPanel({ roomId, gameState, currentUserId }: ActionPanelPro
   const handleAction = (action: PlayerAction, amount?: number) => {
     const s = socket ?? socketClient.getSocket();
     if (!s?.connected) return;
-    s.emit("player-action", { roomId, type: action, amount });
+    s.emit("player-action", { tableId, type: action, amount });
   };
 
   if (!gameState || gameState.phase !== "betting") {

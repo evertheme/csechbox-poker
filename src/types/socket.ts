@@ -1,4 +1,4 @@
-import type { GameState, GameAction, GameRoom, BettingRound, Card, GameConfig } from "./game";
+import type { GameState, GameAction, LobbyTable, BettingRound, Card, GameConfig } from "./game";
 import type { Player } from "./player";
 
 /** Generic ack callback shape used for client→server calls that expect a response */
@@ -31,47 +31,47 @@ export interface HandCompleteResult {
 // ─── Server → Client ─────────────────────────────────────────────────────────
 
 export interface ServerToClientEvents {
-  // Room lifecycle
-  "room:list":    (rooms: GameRoom[]) => void;
-  "room:created": (room: GameRoom) => void;
-  "room:updated": (room: GameRoom) => void;
-  "room:deleted": (roomId: string) => void;
+  // Open tables in the lobby
+  "table:list": (tables: LobbyTable[]) => void;
+  "table:created": (table: LobbyTable) => void;
+  "table:updated": (table: LobbyTable) => void;
+  "table:deleted": (tableId: string) => void;
 
   // Game state
-  "game:state":        (state: GameState) => void;
-  "game:player-joined":(player: Player) => void;
-  "game:player-left":  (playerId: string) => void;
-  "game:action":       (action: GameAction) => void;
-  "game:start":        (state: GameState) => void;
+  "game:state": (state: GameState) => void;
+  "game:player-joined": (player: Player) => void;
+  "game:player-left": (playerId: string) => void;
+  "game:action": (action: GameAction) => void;
+  "game:start": (state: GameState) => void;
 
   // Seating
-  "game:sat-down":  (playerId: string, position: number) => void;
-  "game:stood-up":  (playerId: string) => void;
+  "game:sat-down": (playerId: string, position: number) => void;
+  "game:stood-up": (playerId: string) => void;
 
   // Cards
-  "game:deal":          (playerId: string, cards: Card[]) => void;
+  "game:deal": (playerId: string, cards: Card[]) => void;
   "game:card-revealed": (playerId: string, cardIndex: number, card: Card) => void;
 
   // Betting
-  "game:round-start":   (round: BettingRound) => void;
-  "game:your-turn":     () => void;
-  "game:turn-timeout":  (playerId: string) => void;
+  "game:round-start": (round: BettingRound) => void;
+  "game:your-turn": () => void;
+  "game:turn-timeout": (playerId: string) => void;
 
   // End of hand
-  "game:showdown":      (result: ShowdownResult) => void;
+  "game:showdown": (result: ShowdownResult) => void;
   "game:hand-complete": (result: HandCompleteResult) => void;
 
   // Errors & chat
-  "game:error":    (error: { message: string; code?: string }) => void;
-  "chat:message":  (message: ChatMessage) => void;
+  "game:error": (error: { message: string; code?: string }) => void;
+  "chat:message": (message: ChatMessage) => void;
   /** Server emits `chat-message` (see `server` game-handler). */
-  "chat-message":  (message: ChatMessage) => void;
+  "chat-message": (message: ChatMessage) => void;
 }
 
 // ─── Client → Server ─────────────────────────────────────────────────────────
 
-/** Row returned by server `get-rooms` (see `server/src/socket/handlers/room-handler.ts`). */
-export interface LobbyListRoomRow {
+/** Row returned by server `list-tables`. */
+export interface ListedTableRow {
   id: string;
   name: string;
   players: number;
@@ -79,35 +79,34 @@ export interface LobbyListRoomRow {
   config: GameConfig & { name?: string };
 }
 
-/** Matches server `GameRoomCreateConfig` (`create-room` handler). */
-export type CreateRoomPayload = { name: string } & Partial<GameConfig>;
+/** Matches server `GameRoomCreateConfig` (`create-table` handler). */
+export type CreateTablePayload = { name: string } & Partial<GameConfig>;
 
 export interface ClientToServerEvents {
-  // Room management
-  "room:list": () => void;
-  /** Server-native create (ack returns `roomId`). */
-  "create-room": (
-    config: CreateRoomPayload,
+  "table:list": () => void;
+  /** Server-native create (ack returns `tableId`). */
+  "create-table": (
+    config: CreateTablePayload,
     callback?: (
       res:
-        | { success: true; roomId: string; message: string }
+        | { success: true; tableId: string; message: string }
         | { success: false; error: string }
     ) => void
   ) => void;
   /** Server-native lobby fetch (ack callback). */
-  "get-rooms": (
+  "list-tables": (
     callback: (
       res:
-        | { success: true; rooms: LobbyListRoomRow[] }
+        | { success: true; tables: ListedTableRow[] }
         | { success: false; error: string }
     ) => void
   ) => void;
   /** Server-native join (ack callback). */
-  "join-room": (
-    roomId: string,
+  "join-table": (
+    tableId: string,
     callback: (
       res:
-        | { success: true; message: string; room: unknown }
+        | { success: true; message: string; table: unknown }
         | { success: false; error: string }
     ) => void
   ) => void;
@@ -118,25 +117,25 @@ export interface ClientToServerEvents {
       isPrivate?: boolean;
       password?: string;
     },
-    callback: (res: SocketResponse<GameRoom>) => void
+    callback: (res: SocketResponse<LobbyTable>) => void
   ) => void;
-  "room:join":  (roomId: string, callback: (res: SocketResponse<GameState>) => void) => void;
-  "room:leave": (roomId: string) => void;
-  /** Server-native leave room. */
-  "leave-room": (roomId: string) => void;
+  "room:join": (tableId: string, callback: (res: SocketResponse<GameState>) => void) => void;
+  "room:leave": (tableId: string) => void;
+  /** Server-native leave. */
+  "leave-table": (tableId: string) => void;
 
   // Game flow
-  "game:start":    (roomId: string) => void;
+  "game:start": (tableId: string) => void;
   /** Server-native start hand/table (see `server` game-handler). */
-  "start-game": (roomId: string) => void;
-  "game:action":   (action: GameAction) => void;
-  /** Server-native player action (includes `roomId`). */
-  "player-action": (action: { roomId: string; type: string; amount?: number }) => void;
+  "start-game": (tableId: string) => void;
+  "game:action": (action: GameAction) => void;
+  /** Server-native player action. */
+  "player-action": (action: { tableId: string; type: string; amount?: number }) => void;
   "game:sit-down": (position: number) => void;
   "game:stand-up": () => void;
 
   // Chat
-  "chat:send": (roomId: string, text: string) => void;
+  "chat:send": (tableId: string, text: string) => void;
   /** Server-native chat (see `server` game-handler). */
-  "send-message": (roomId: string, message: string) => void;
+  "send-message": (tableId: string, message: string) => void;
 }

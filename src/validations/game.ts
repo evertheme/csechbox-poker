@@ -11,11 +11,11 @@ export const gameConfigSchema = z.object({
   timeLimit: z.number().int().min(10).max(120).default(30),
 });
 
-export const createRoomSchema = z.object({
+export const createTableSchema = z.object({
   name: z
     .string()
-    .min(3, "Room name must be at least 3 characters")
-    .max(32, "Room name must be at most 32 characters"),
+    .min(3, "Table name must be at least 3 characters")
+    .max(32, "Table name must be at most 32 characters"),
   isPrivate: z.boolean().default(false),
   password: z.string().optional(),
   config: gameConfigSchema,
@@ -27,5 +27,5 @@ export const gameActionSchema = z.object({
 });
 
 export type GameConfigInput = z.infer<typeof gameConfigSchema>;
-export type CreateRoomInput = z.infer<typeof createRoomSchema>;
+export type CreateTableInput = z.infer<typeof createTableSchema>;
 export type GameActionInput = z.infer<typeof gameActionSchema>;

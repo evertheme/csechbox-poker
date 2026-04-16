@@ -6,10 +6,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { GamePhase } from "@/types/game";
-import type { RoomInfo } from "@/store/lobby-store";
+import type { TableInfo } from "@/store/lobby-store";
 
-interface RoomCardProps {
-  room: RoomInfo;
+interface TableCardProps {
+  table: TableInfo;
 }
 
 const PHASE_LABELS: Record<GamePhase, string> = {
@@ -21,10 +21,10 @@ const PHASE_LABELS: Record<GamePhase, string> = {
   complete: "Complete",
 };
 
-export function RoomCard({ room }: RoomCardProps) {
-  const phase = room.phase ?? "waiting";
-  const bringIn = room.config.bringIn ?? 0;
-  const isFull = room.players >= room.maxPlayers;
+export function TableCard({ table }: TableCardProps) {
+  const phase = table.phase ?? "waiting";
+  const bringIn = table.config.bringIn ?? 0;
+  const isFull = table.players >= table.maxPlayers;
 
   return (
     <Card className="border-zinc-800 bg-zinc-900">
@@ -32,17 +32,17 @@ export function RoomCard({ room }: RoomCardProps) {
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-white truncate">{room.name}</h3>
-              {room.isPrivate && <Lock className="h-3.5 w-3.5 text-zinc-400 shrink-0" />}
+              <h3 className="font-semibold text-white truncate">{table.name}</h3>
+              {table.isPrivate && <Lock className="h-3.5 w-3.5 text-zinc-400 shrink-0" />}
             </div>
             <p className="mt-1 text-xs text-zinc-500">
-              Ante {room.config.ante} · Bring-in {bringIn} · {PHASE_LABELS[phase]}
+              Ante {table.config.ante} · Bring-in {bringIn} · {PHASE_LABELS[phase]}
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
             <span className={cn("flex items-center gap-1 text-sm", isFull ? "text-red-400" : "text-zinc-400")}>
               <Users className="h-3.5 w-3.5" />
-              {room.players}/{room.maxPlayers}
+              {table.players}/{table.maxPlayers}
             </span>
             {isFull ? (
               <Button size="sm" variant="poker" disabled>
@@ -50,7 +50,7 @@ export function RoomCard({ room }: RoomCardProps) {
               </Button>
             ) : (
               <Button asChild size="sm" variant="poker">
-                <Link href={`/game/${room.id}`}>Join</Link>
+                <Link href={`/game/${table.id}`}>Join</Link>
               </Button>
             )}
           </div>

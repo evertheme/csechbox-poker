@@ -12,11 +12,11 @@ import { cn } from "@/lib/utils";
 import { Send } from "lucide-react";
 
 export interface ChatPanelProps {
-  roomId: string;
+  tableId: string;
   className?: string;
 }
 
-export function ChatPanel({ roomId, className }: ChatPanelProps) {
+export function ChatPanel({ tableId, className }: ChatPanelProps) {
   const { socket } = useSocket();
   const user = useAuthStore((state) => state.user);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -35,7 +35,7 @@ export function ChatPanel({ roomId, className }: ChatPanelProps) {
     return () => {
       s.off("chat-message", onMsg);
     };
-  }, [socket, roomId]);
+  }, [socket, tableId]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -49,7 +49,7 @@ export function ChatPanel({ roomId, className }: ChatPanelProps) {
     if (!text) return;
     const s = socket ?? socketClient.getSocket();
     if (!s?.connected) return;
-    s.emit("send-message", roomId, text);
+    s.emit("send-message", tableId, text);
     setInputValue("");
   };
 
