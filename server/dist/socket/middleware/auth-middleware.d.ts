@@ -5,5 +5,5 @@ declare module "socket.io" {
         username?: string;
     }
 }
-export declare const authMiddleware: (socket: Socket, next: (err?: ExtendedError) => void) => void;
+export declare const authMiddleware: (socket: Socket, next: (err?: ExtendedError) => void) => Promise<void>;
 //# sourceMappingURL=auth-middleware.d.ts.map

@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSocket } from "@/hooks/use-socket";
 import { socketClient } from "@/lib/socket";
+import { supabase } from "@/lib/supabase/client";
 import { fromGetRoomsRow, useLobbyStore } from "@/store/lobby-store";
 import { useAuthStore } from "@/store/auth-store";
 import { Users, Plus, DollarSign, TrendingUp } from "lucide-react";
@@ -30,7 +31,10 @@ export default function LobbyPage() {
   useEffect(() => {
     if (!user) return;
     if (!isConnected) {
-      connect(user.id);
+      void (async () => {
+        const { data } = await supabase.auth.getSession();
+        connect({ userId: user.id, accessToken: data.session?.access_token });
+      })();
     }
   }, [isConnected, user, connect]);
 

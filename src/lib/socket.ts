@@ -16,9 +16,10 @@ class SocketClient {
     return SocketClient.instance;
   }
 
-  connect(userId?: string): PokerSocket {
+  connect(options?: { userId: string; accessToken?: string }): PokerSocket {
     if (this.socket?.connected) return this.socket;
 
+    const { userId, accessToken } = options ?? {};
     this.socket = io(SOCKET_URL, {
       autoConnect: false,
       reconnection: true,
@@ -31,7 +32,7 @@ class SocketClient {
       // Socket.IO 4.8+ features
       ackTimeout: 10_000,
       retries: 3,
-      auth: { userId },
+      auth: { userId, accessToken },
     });
 
     this.setupListeners();
@@ -69,8 +70,8 @@ class SocketClient {
   }
 
   /** Returns the typed socket, creating it if needed (does not connect). */
-  getOrCreate(userId?: string): PokerSocket {
-    return this.socket ?? this.connect(userId);
+  getOrCreate(options?: { userId: string; accessToken?: string }): PokerSocket {
+    return this.socket ?? this.connect(options);
   }
 }
 

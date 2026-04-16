@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { socketClient } from "@/lib/socket";
+import { supabase } from "@/lib/supabase/client";
 import { useAuthStore } from "@/store/auth-store";
 import { useGameStore } from "@/store/game-store";
 import { toRoomInfo, useLobbyStore } from "@/store/lobby-store";
@@ -18,7 +19,7 @@ import type { PokerSocket } from "@/lib/socket";
 interface SocketContextValue {
   socket: PokerSocket | null;
   isConnected: boolean;
-  connect: (userId?: string) => void;
+  connect: (options?: { userId: string; accessToken?: string }) => void;
   disconnect: () => void;
 }
 
@@ -42,18 +43,21 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     setIsConnected(false);
   }, []);
 
-  const connect = useCallback((userId?: string) => {
-    const s = socketClient.connect(userId);
+  const connect = useCallback((options?: { userId: string; accessToken?: string }) => {
+    const s = socketClient.connect(options);
     socketRef.current = s;
   }, []);
 
   // Auto-connect/disconnect when auth state changes
   useEffect(() => {
-    if (user) {
-      connect(user.id);
-    } else {
+    if (!user) {
       disconnect();
+      return;
     }
+    void (async () => {
+      const { data } = await supabase.auth.getSession();
+      connect({ userId: user.id, accessToken: data.session?.access_token });
+    })();
   }, [user, connect, disconnect]);
 
   // Register server→client event handlers

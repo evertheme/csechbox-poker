@@ -5,6 +5,7 @@ import { Providers } from "./providers";
 import "./globals.css";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/server";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -40,11 +41,14 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabase = await createClient();
+  await supabase.auth.getUser();
+
   return (
     <html lang="en" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
       <body className={`${GeistSans.variable} ${GeistMono.variable} antialiased min-h-screen bg-felt`}>
