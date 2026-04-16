@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSocket } from "@/hooks/use-socket";
 import { socketClient } from "@/lib/socket";
+import { supabase } from "@/lib/supabase/client";
 import { fromGetRoomsRow, useLobbyStore } from "@/store/lobby-store";
 import { useAuthStore } from "@/store/auth-store";
 import { Users, Plus, DollarSign, TrendingUp } from "lucide-react";
@@ -30,7 +31,10 @@ export default function LobbyPage() {
   useEffect(() => {
     if (!user) return;
     if (!isConnected) {
-      connect(user.id);
+      void (async () => {
+        const { data } = await supabase.auth.getSession();
+        connect({ userId: user.id, accessToken: data.session?.access_token });
+      })();
     }
   }, [isConnected, user, connect]);
 
@@ -47,9 +51,9 @@ export default function LobbyPage() {
     setIsLoading(true);
     s.emit("get-rooms", (response) => {
       setIsLoading(false);
-      if (response.success && response.rooms) {
-        setRooms(response.rooms.map(fromGetRoomsRow));
-      }
+      if (!response) return;
+      if (!response.success || !Array.isArray(response.rooms)) return;
+      setRooms(response.rooms.map(fromGetRoomsRow));
     });
   }, [user, isConnected, socket, setRooms]);
 
@@ -69,6 +73,12 @@ export default function LobbyPage() {
     }
 
     s.emit("join-room", roomId, (response) => {
+      if (!response) {
+        toast.error("Failed to join", {
+          description: "No response from server",
+        });
+        return;
+      }
       if (response.success) {
         toast.success("Joined room", {
           description: "Entering game…",

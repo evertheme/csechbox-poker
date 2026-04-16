@@ -102,6 +102,20 @@ export function CreateRoomDialog() {
     setIsLoading(true);
 
     s.emit("create-room", payload, (response) => {
+      if (response instanceof Error) {
+        setIsLoading(false);
+        toast.error("Failed to create room", {
+          description: response.message,
+        });
+        return;
+      }
+      if (!response) {
+        setIsLoading(false);
+        toast.error("Failed to create room", {
+          description: "No response from server",
+        });
+        return;
+      }
       if (!response.success) {
         setIsLoading(false);
         toast.error("Failed to create room", {
@@ -117,6 +131,18 @@ export function CreateRoomDialog() {
 
       s.emit("join-room", response.roomId, (joinResponse) => {
         setIsLoading(false);
+        if (joinResponse instanceof Error) {
+          toast.error("Could not join room", {
+            description: joinResponse.message,
+          });
+          return;
+        }
+        if (!joinResponse) {
+          toast.error("Could not join room", {
+            description: "No response from server",
+          });
+          return;
+        }
         if (joinResponse.success) {
           router.push(`/game/${response.roomId}`);
         } else {
