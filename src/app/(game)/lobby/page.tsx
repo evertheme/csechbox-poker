@@ -51,9 +51,9 @@ export default function LobbyPage() {
     setIsLoading(true);
     s.emit("get-rooms", (response) => {
       setIsLoading(false);
-      if (response.success && response.rooms) {
-        setRooms(response.rooms.map(fromGetRoomsRow));
-      }
+      if (!response) return;
+      if (!response.success || !Array.isArray(response.rooms)) return;
+      setRooms(response.rooms.map(fromGetRoomsRow));
     });
   }, [user, isConnected, socket, setRooms]);
 
@@ -73,6 +73,12 @@ export default function LobbyPage() {
     }
 
     s.emit("join-room", roomId, (response) => {
+      if (!response) {
+        toast.error("Failed to join", {
+          description: "No response from server",
+        });
+        return;
+      }
       if (response.success) {
         toast.success("Joined room", {
           description: "Entering game…",

@@ -1,5 +1,5 @@
 import type { ExtendedError, Socket } from "socket.io";
-import { jwtVerify } from "jose";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 
 declare module "socket.io" {
   interface SocketData {
@@ -8,16 +8,56 @@ declare module "socket.io" {
   }
 }
 
-async function verifySupabaseAccessToken(
-  token: string,
-  secret: string
-): Promise<string | null> {
-  try {
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
-    return typeof payload.sub === "string" ? payload.sub : null;
-  } catch {
-    return null;
+/** Cached JWKS verifier for asymmetric signing keys (see Supabase JWT Signing Keys). */
+let jwksGetter: ReturnType<typeof createRemoteJWKSet> | null = null;
+
+function getJwks(): ReturnType<typeof createRemoteJWKSet> | null {
+  const base = process.env.SUPABASE_URL?.replace(/\/$/, "");
+  if (!base) return null;
+  jwksGetter ??= createRemoteJWKSet(
+    new URL(`${base}/auth/v1/.well-known/jwks.json`)
+  );
+  return jwksGetter;
+}
+
+/**
+ * Verifies a Supabase access token:
+ * 1. Legacy HS256 with SUPABASE_JWT_SECRET (if set)
+ * 2. Asymmetric keys via JWKS at SUPABASE_URL (required for newer "JWT Signing Keys" projects)
+ */
+async function verifySupabaseAccessToken(token: string): Promise<string | null> {
+  const secret = process.env.SUPABASE_JWT_SECRET?.trim();
+
+  if (secret) {
+    try {
+      const { payload } = await jwtVerify(
+        token,
+        new TextEncoder().encode(secret)
+      );
+      if (typeof payload.sub === "string") return payload.sub;
+    } catch {
+      // Not HS256 with legacy secret — try JWKS (e.g. ES256 / new signing keys)
+    }
   }
+
+  const jwks = getJwks();
+  if (jwks) {
+    try {
+      const { payload } = await jwtVerify(token, jwks);
+      return typeof payload.sub === "string" ? payload.sub : null;
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+function canVerifyAccessTokens(): boolean {
+  return (
+    Boolean(process.env.SUPABASE_JWT_SECRET?.trim()) ||
+    Boolean(process.env.SUPABASE_URL?.trim())
+  );
 }
 
 export const authMiddleware = async (
@@ -30,11 +70,9 @@ export const authMiddleware = async (
     accessToken?: string;
   };
 
-  const jwtSecret = process.env.SUPABASE_JWT_SECRET;
-
-  if (jwtSecret) {
+  if (canVerifyAccessTokens()) {
     if (accessToken) {
-      const sub = await verifySupabaseAccessToken(accessToken, jwtSecret);
+      const sub = await verifySupabaseAccessToken(accessToken);
       if (!sub) {
         return next(new Error("Unauthorized: invalid token"));
       }
@@ -50,7 +88,7 @@ export const authMiddleware = async (
     return next();
   }
 
-  // No JWT secret (typical local dev): ignore accessToken and trust userId only.
+  // No verifier configured (typical local dev): ignore accessToken and trust userId only.
   if (userId) {
     socket.data.userId = userId;
     if (username !== undefined) {

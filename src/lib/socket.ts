@@ -29,9 +29,8 @@ class SocketClient {
       // Prefer WebSocket, fall back to polling
       transports: ["websocket", "polling"],
       upgrade: true,
-      // Socket.IO 4.8+ features
-      ackTimeout: 10_000,
-      retries: 3,
+      // Do not set ackTimeout: with it, ack callbacks are delivered as (err, result) and
+      // single-argument handlers receive null as the first arg (see socket.io-client onack + withError).
       auth: { userId, accessToken },
     });
 
